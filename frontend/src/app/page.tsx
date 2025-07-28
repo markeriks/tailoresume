@@ -9,6 +9,7 @@ import CTA from './components/CTA';
 export const metadata = {
   title: 'TailoResume - Tailor Your Resume Instantly',
   description: 'Tailor your resume to any job posting in minutes with AI-powered optimization.',
+  themeColor: '#ffffff',
   openGraph: {
     title: 'TailoResume',
     description: 'AI-powered resume tailoring for job seekers',
