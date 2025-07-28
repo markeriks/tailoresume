@@ -2,9 +2,9 @@
 
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-import Features from './components/Features';
 import HowItWorks from './components/HowItWorks';
 import CTA from './components/CTA';
+import Persona from './components/Persona';
 
 export const metadata = {
   title: 'TailoResume - Tailor Your Resume Instantly',
@@ -41,7 +41,7 @@ export default function Home() {
     <>
       <Navbar />
       <Hero />
-      <Features />
+      <Persona />
       <HowItWorks />
       <CTA />
       {/* Add more components as needed */}
