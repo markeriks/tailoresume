@@ -1,13 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.transform import router as transform_router
+import os
+import uvicorn
 
 app = FastAPI(title="TailoreResume API")
 
 # Allow CORS from your frontend origin
 origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "https://tailoresume.onrender.com",
 ]
 
 app.add_middleware(
@@ -19,3 +20,7 @@ app.add_middleware(
 )
 
 app.include_router(transform_router)
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port)
