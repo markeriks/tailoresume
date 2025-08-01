@@ -1,6 +1,8 @@
 
 import Image from 'next/image';
+import Link from 'next/link';
 import heroImage from '@/app/assets/hero-image.jpg';
+import rejected from '@/app/assets/rejected.png';
 
 const Hero = () => {
   return (
@@ -38,17 +40,21 @@ const Hero = () => {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button className="flex items-center justify-center gap-2 px-8 py-4 text-lg rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition-colors">
-              Start Tailoring Now
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </button>
-            <button className="px-8 py-4 text-lg rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors">
-              See How It Works
-            </button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link href="/signup">
+              <button
+                type="button"
+                className="relative z-50 flex items-center gap-2 justify-center px-8 py-4 text-lg font-semibold rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition"
+              >Start tailoring now
+              </button>
+            </Link>
+
+            <div className="flex items-center gap-2 px-4 py-4 text-gray-600 font-bold justify-start sm:justify-center">
+              <Image src={rejected} alt="No credit card" width={40} height={40} />
+              No credit card required
+            </div>
           </div>
+
 
           {/* Trust indicators */}
           <div className="flex items-center gap-6 pt-4">

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Check } from 'lucide-react';
+import Link from 'next/link';
 
 type BillingPeriod = 'monthly' | 'quarterly';
 
@@ -208,9 +209,11 @@ function PricingCard({
         </p>
       </div>
 
-      <button className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors mb-8">
-        {buttonLabel}
-      </button>
+      <Link href="/signup">
+        <button className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors mb-8">
+          {buttonLabel}
+        </button>
+      </Link>
 
       <ul className="space-y-4">
         {features.map((feature, index) => (

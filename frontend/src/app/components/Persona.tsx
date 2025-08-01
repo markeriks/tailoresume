@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Clock, Target, Zap, ArrowRight, User, Briefcase, ChevronRight } from 'lucide-react';
+import { Clock, Target, Zap, ArrowRight, User, Briefcase } from 'lucide-react';
 import personaImage from '@/app/assets/persona.jpg';
 
 export default function AnnaStorySection() {
@@ -12,10 +12,6 @@ export default function AnnaStorySection() {
   useEffect(() => {
     setIsVisible(true);
   }, []);
-
-  const handleNextScene = () => {
-    setCurrentScene((prev) => (prev + 1) % 3);
-  };
 
   const scenes = [
     {

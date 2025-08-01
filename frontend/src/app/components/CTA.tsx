@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 const CTA = () => {
   return (
     <section className="py-24 bg-gradient-to-br from-blue-100 via-white to-purple-100">
@@ -32,29 +34,34 @@ const CTA = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <button
-              type="button"
-              className="flex items-center gap-2 justify-center px-8 py-4 text-lg font-semibold rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition"
-            >
-              Get Started for Free
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                viewBox="0 0 24 24"
+            <Link href="/signup">
+              <button
+                type="button"
+                className="flex items-center gap-2 justify-center px-8 py-4 text-lg font-semibold rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition"
               >
-                <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="px-8 py-4 text-lg font-semibold rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
-            >
-              View Pricing
-            </button>
+                Get Started for Free
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </button>
+            </Link>
+            
+            <Link href="/pricing">
+              <button
+                type="button"
+                className="px-8 py-4 text-lg font-semibold rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+              >
+                View Pricing
+              </button>
+            </Link>
           </div>
 
           {/* Extra whitespace */}

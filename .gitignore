@@ -1,0 +1,40 @@
+# Ignore frontend node modules and build files
+/frontend/node_modules/
+/frontend/.pnp
+/frontend/.pnp.*
+/frontend/.yarn/
+/frontend/.next/
+/frontend/out/
+/frontend/build/
+
+/frontend/coverage/
+
+# Frontend misc and logs
+/frontend/.DS_Store
+/frontend/*.pem
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+/frontend/.pnpm-debug.log*
+
+# Frontend env files
+/frontend/.env*
+
+# Frontend vercel
+/frontend/.vercel
+
+# Frontend typescript
+/frontend/*.tsbuildinfo
+/frontend/next-env.d.ts
+
+# Ignore backend virtual environment
+/backend/venv/
+/backend/__pycache__/
+/backend/*.pyc
+
+# Backend env files
+/backend/.env
+
+# Ignore any OS files in root or subfolders
+.DS_Store
+Thumbs.db
