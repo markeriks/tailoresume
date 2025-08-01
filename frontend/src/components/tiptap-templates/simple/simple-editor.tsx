@@ -169,7 +169,7 @@ export function SimpleEditor({ resumeContent }: SimpleEditorProps) {
     console.log('Sending to API:', { action, text: trimmedText })
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/transform', {
+      const response = await fetch('https://tailoresume-backend.onrender.com/transform', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
