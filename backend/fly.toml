@@ -1,0 +1,26 @@
+# fly.toml app configuration file generated for backend-late-snow-4268 on 2025-08-01T23:14:59+03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'backend-late-snow-4268'
+primary_region = 'arn'
+
+[build]
+  builder = 'paketobuildpacks/builder:base'
+
+[env]
+  PORT = '8080'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1

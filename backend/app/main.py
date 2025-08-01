@@ -8,7 +8,7 @@ app = FastAPI(title="TailoreResume API")
 
 # Allow CORS from your frontend origin
 origins = [
-    "https://tailoresume.onrender.com",
+    "https://tailoresume.com",
 ]
 
 app.add_middleware(
