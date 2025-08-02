@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from app.firebase_auth import verify_firebase_token
 from app.rate_limit import limiter
 from pydantic import BaseModel
@@ -23,14 +23,15 @@ class TransformResponse(BaseModel):
 @router.post("/transform", response_model=TransformResponse)
 @limiter.limit("5/minute")
 async def transform_text(
-    request: TransformRequest,
+    request: Request,
+    body: TransformRequest,
     user=Depends(verify_firebase_token),
 ):
     try:
-        prompt = f'Please {request.action} the following text: "{request.text}"'
+        prompt = f'Please {body.action} the following text: "{body.text}"'
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You help revise and improve short snippets of resume text."},
                 {"role": "user", "content": prompt}

@@ -5,6 +5,7 @@ from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
 
 from app.routes.transform import router as transform_router
+from app.routes.tailor import router as tailor_router
 from app.rate_limit import limiter
 
 import os
@@ -27,7 +28,9 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 # CORS settings
 origins = [
     "https://tailoresume.com",
+    "http://localhost:3000",
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,6 +42,8 @@ app.add_middleware(
 
 # Routes
 app.include_router(transform_router)
+app.include_router(tailor_router)
+
 
 # Run with uvicorn only in dev
 if __name__ == "__main__":

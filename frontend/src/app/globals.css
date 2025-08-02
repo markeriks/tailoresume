@@ -205,3 +205,7 @@ body {
   margin-top: 1.125rem;
 }
 
+.highlight {
+  background-color: #c9ffe8; /* Yellow highlight */
+  border-radius: 3px;
+}

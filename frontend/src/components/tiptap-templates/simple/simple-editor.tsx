@@ -4,6 +4,7 @@ import * as React from 'react'
 import { getAuth } from "firebase/auth";
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 
+
 // --- Extensions ---
 import { StarterKit } from '@tiptap/starter-kit'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
@@ -13,6 +14,7 @@ import { Highlight } from '@tiptap/extension-highlight'
 import { Subscript } from '@tiptap/extension-subscript'
 import { Superscript } from '@tiptap/extension-superscript'
 import { Selection } from '@tiptap/extensions'
+import { Paragraph } from '@tiptap/extension-paragraph';
 
 // --- UI Primitives ---
 import { Button } from '@/components/tiptap-ui-primitive/button'
@@ -71,10 +73,66 @@ import '@/components/tiptap-templates/simple/simple-editor.scss'
 import { SelectionToolbar } from '@/app/components/SelectionToolbar'
 
 interface SimpleEditorProps {
-  resumeContent: string
+  originalResume: string;
+  modifiedResume: string;
+  jobTitle?: string | null;
 }
 
-export function SimpleEditor({ resumeContent }: SimpleEditorProps) {
+function highlightTextDiff(original: string, modified: string): string {
+  // 1. Create DOM parsers for both
+  console.log("started Highlight function");
+  const parser = new DOMParser();
+  const origDoc = parser.parseFromString(`<div>${original}</div>`, 'text/html');
+  const modDoc = parser.parseFromString(`<div>${modified}</div>`, 'text/html');
+
+  // 2. Recursive function to diff text nodes
+  function diffNodes(origNode: ChildNode, modNode: ChildNode) {
+    if (origNode.nodeType === Node.TEXT_NODE && modNode.nodeType === Node.TEXT_NODE) {
+      const origText = origNode.textContent || '';
+      const modText = modNode.textContent || '';
+
+      // Simple diff — highlight all text differences by wrapping changed parts
+      if (origText !== modText) {
+        console.log("Text nodes differ:", origText, modText);
+        const parent = modNode.parentElement;
+        if (parent) {
+          parent.classList.add('highlight');
+        }
+      }
+    } else if (origNode.childNodes.length === modNode.childNodes.length) {
+      // If both have same number of children, recurse
+      console.log("Starting recursion");
+      for (let i = 0; i < origNode.childNodes.length; i++) {
+        diffNodes(origNode.childNodes[i], modNode.childNodes[i]);
+      }
+    }
+  }
+
+  diffNodes(origDoc.body.firstChild!, modDoc.body.firstChild!);
+
+  // 3. Return modified innerHTML without the wrapper <div>
+  return (modDoc.body.firstChild as Element)?.innerHTML || '';
+}
+
+const ParagraphWithClass = Paragraph.extend({
+  addAttributes() {
+    return {
+      class: {
+        default: null,
+        parseHTML: element => element.getAttribute('class'),
+        renderHTML: attributes => {
+          return {
+            class: attributes.class || null,
+          };
+        },
+      },
+    };
+  },
+});
+
+
+
+export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: SimpleEditorProps) {
   const isMobile = useIsMobile()
   const windowSize = useWindowSize()
   const [mobileView, setMobileView] = React.useState<'main' | 'highlighter' | 'link'>('main')
@@ -95,9 +153,11 @@ export function SimpleEditor({ resumeContent }: SimpleEditorProps) {
     },
     extensions: [
       StarterKit.configure({
+        paragraph: false,
         horizontalRule: false,
         link: { openOnClick: false, enableClickSelection: true },
       }),
+      ParagraphWithClass,
       HorizontalRule,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       TaskList,
@@ -113,11 +173,16 @@ export function SimpleEditor({ resumeContent }: SimpleEditorProps) {
     injectCSS: true,
     autofocus: false,
     parseOptions: { preserveWhitespace: false },
+
     onCreate({ editor }) {
-      if (resumeContent) {
-        editor.commands.setContent(resumeContent, { parseOptions: { preserveWhitespace: false } })
+      if (originalResume && modifiedResume) {
+        console.log("Original Resume:", originalResume);
+        console.log("Modified Resume:", modifiedResume);
+        const highlightedContent = highlightTextDiff(originalResume, modifiedResume);
+        editor.commands.setContent(highlightedContent, { parseOptions: { preserveWhitespace: false } });
       }
     },
+
     immediatelyRender: false,
   })
 
@@ -298,6 +363,12 @@ export function SimpleEditor({ resumeContent }: SimpleEditorProps) {
 
   return (
     <div className="simple-editor-wrapper mt-10 md:mt-25">
+      {jobTitle && (
+        <div className="mb-4 p-4 rounded-xl bg-gray-100 text-gray-800 text-lg font-medium">
+          Tailoring resume to: <span className="font-semibold">{jobTitle}</span>
+        </div>
+      )}
+
       {editor && (
         <EditorContext.Provider value={{ editor }}>
           <Toolbar

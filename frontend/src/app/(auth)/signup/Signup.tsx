@@ -42,7 +42,7 @@ export default function Signup() {
         createdAt: serverTimestamp(),
       });
 
-      router.push('/dashboard');
+      // router.push('/dashboard');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -50,7 +50,7 @@ export default function Signup() {
         setError('Signup failed');
       }
     } finally {
-      setLoading(false);
+      setLoading(true);
     }
   };
 
@@ -67,7 +67,7 @@ export default function Signup() {
         createdAt: serverTimestamp(),
       });
 
-      router.push('/dashboard');
+      // router.push('/dashboard');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -75,7 +75,7 @@ export default function Signup() {
         setError('Google sign-in failed');
       }
     } finally {
-      setLoading(false);
+      setLoading(true);
     }
   };
 

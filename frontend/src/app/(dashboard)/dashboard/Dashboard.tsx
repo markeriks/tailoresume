@@ -3,12 +3,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import DashboardMain from '@/app/components/DashboardMain';
 import * as mammoth from 'mammoth';
+import { getAuth } from "firebase/auth";
 
 interface DashboardProps {
-  setResumeContent: (html: string) => void;
+  setResumeContent: (original: string, modified: string) => void;
+  setJobTitle: (title: string) => void;
 }
 
-export default function TailoResumeDashboard({ setResumeContent }: DashboardProps) {
+export default function TailoResumeDashboard({ setResumeContent, setJobTitle }: DashboardProps) {
   const [jobUrl, setJobUrl] = useState<string>("https://example.com/job-posting");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -17,7 +19,6 @@ export default function TailoResumeDashboard({ setResumeContent }: DashboardProp
   const profileRef = useRef<HTMLButtonElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Close profile modal on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -57,23 +58,69 @@ export default function TailoResumeDashboard({ setResumeContent }: DashboardProp
     setIsProcessing(true);
 
     try {
-      // Read the uploaded file as an ArrayBuffer
+      // 1. Extract job title & text using Diffbot
+      const token = process.env.NEXT_PUBLIC_DIFFBOT_TOKEN!;
+      const diffbotUrl = `https://api.diffbot.com/v3/job?token=${token}&url=${encodeURIComponent(jobUrl)}`;
+
+      const diffbotResponse = await fetch(diffbotUrl);
+      if (!diffbotResponse.ok) {
+        throw new Error(`Diffbot API error: ${diffbotResponse.statusText}`);
+      }
+      const jobData = await diffbotResponse.json();
+      console.log('Extracted job data:', JSON.stringify(jobData, null, 2));
+
+      const jobObj = jobData.objects?.[0];
+      const title = jobObj?.title || 'Untitled Job';
+      const text = jobObj?.text || '';
+      const combinedJobContent = `${title}\n\n${text}`;
+
+      // Set job title
+      setJobTitle(title);
+
+      // 2. Convert uploaded resume to HTML
       const arrayBuffer = await uploadedFile.arrayBuffer();
+      const { value: originalHtml } = await mammoth.convertToHtml({ arrayBuffer });
 
-      // Use mammoth to convert docx to HTML
-      const { value: html } = await mammoth.convertToHtml({ arrayBuffer });
+      // 3. Send original resume + job data to backend for tailoring
 
-      // Set the converted HTML content into your state
-      setResumeContent(html);
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        console.error("User not authenticated");
+        return;
+      }
+
+      const idToken = await user.getIdToken();
+
+      const backendResponse = await fetch('https://backend-late-snow-4268.fly.dev/tailor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          jobContent: combinedJobContent,
+          resumeContent: originalHtml,
+        }),
+      });
+
+      if (!backendResponse.ok) {
+        throw new Error(`Backend API error: ${backendResponse.statusText}`);
+      }
+
+      const result = await backendResponse.json();
+      const tailoredHtml = result.tailoredResume || originalHtml;
+
+      // 4. Send both original and tailored resumes to wrapper
+      setResumeContent(originalHtml, tailoredHtml);
     } catch (error) {
-      console.error('Failed to parse docx:', error);
-      alert('Failed to load resume content.');
+      console.error('Error during tailoring resume:', error);
+      alert('An error occurred while tailoring your resume.');
     } finally {
       setIsProcessing(false);
     }
   };
-
-
 
   return (
     <div className="min-h-screen bg-white">
