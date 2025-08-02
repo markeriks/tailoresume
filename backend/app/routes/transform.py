@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from app.firebase_auth import verify_firebase_token
+from app.rate_limit import limiter
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -19,12 +21,13 @@ class TransformResponse(BaseModel):
     result: str
 
 @router.post("/transform", response_model=TransformResponse)
-async def transform_text(request: TransformRequest):
+@limiter.limit("5/minute")
+async def transform_text(
+    request: TransformRequest,
+    user=Depends(verify_firebase_token),
+):
     try:
-        print(f"[API HIT] /transform - action: {request.action}, text: {request.text}")
-
         prompt = f'Please {request.action} the following text: "{request.text}"'
-
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",

@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { getAuth } from "firebase/auth";
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 
 // --- Extensions ---
@@ -158,52 +159,66 @@ export function SimpleEditor({ resumeContent }: SimpleEditorProps) {
   }, [editor])
 
   const onSelectionAction = async (action: string) => {
-    if (!editor) return
+    if (!editor) return;
 
-    const trimmedText = selectedText.trim()
+    const trimmedText = selectedText.trim();
     if (!trimmedText) {
-      console.warn('No text selected')
-      return
+      console.warn("No text selected");
+      return;
     }
 
-    console.log('Sending to API:', { action, text: trimmedText })
+    console.log("Sending to API:", { action, text: trimmedText });
 
     try {
-      const response = await fetch('https://backend-late-snow-4268.fly.dev/transform', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action, text: trimmedText }),
-      })
+      const auth = getAuth();
+      const user = auth.currentUser;
 
-      if (!response.ok) {
-        console.error('API request failed:', response.statusText)
-        return
+      if (!user) {
+        console.error("User not authenticated");
+        return;
       }
 
-      const data = await response.json()
-      const newText = data.result.replace(/^"+|"+$/g, '')
-      console.log('Received from API:', newText)
+      const idToken = await user.getIdToken();
 
-      editor.chain().focus().deleteSelection().run()
+      const response = await fetch(
+        "https://backend-late-snow-4268.fly.dev/transform",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ action, text: trimmedText }),
+        }
+      );
 
-      let currentIndex = 0
+      if (!response.ok) {
+        console.error("API request failed:", response.statusText);
+        return;
+      }
+
+      const data = await response.json();
+      const newText = data.result.replace(/^"+|"+$/g, "");
+      console.log("Received from API:", newText);
+
+      editor.chain().focus().deleteSelection().run();
+
+      let currentIndex = 0;
 
       function typeNextChar() {
-        if (!editor) return
+        if (!editor) return;
         if (currentIndex < newText.length) {
-          editor.chain().focus().insertContent(newText[currentIndex]).run()
-          currentIndex++
-          setTimeout(typeNextChar, 30)
+          editor.chain().focus().insertContent(newText[currentIndex]).run();
+          currentIndex++;
+          setTimeout(typeNextChar, 30);
         }
       }
 
-      typeNextChar()
+      typeNextChar();
     } catch (error) {
-      console.error('Error calling transform API:', error)
+      console.error("Error calling transform API:", error);
     }
-  }
+  };
 
   const MobileToolbarContent = ({
     type,
@@ -294,11 +309,11 @@ export function SimpleEditor({ resumeContent }: SimpleEditorProps) {
               zIndex: 2,
               ...(isMobile
                 ? {
-                    bottom: `calc(100% - ${windowSize.height - rect.y}px)`,
-                  }
+                  bottom: `calc(100% - ${windowSize.height - rect.y}px)`,
+                }
                 : {
-                    top: 64,
-                  }),
+                  top: 64,
+                }),
               ...(isScrolling && isMobile
                 ? { opacity: 0, transition: 'opacity 0.1s ease-in-out' }
                 : {}),
