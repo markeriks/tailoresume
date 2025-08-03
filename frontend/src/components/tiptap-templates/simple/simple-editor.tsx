@@ -216,7 +216,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
       editor.commands.setContent(highlighted, { parseOptions: { preserveWhitespace: false } });
       setContentLoaded(true);
     }, 400);
-  }, [editor, modifiedResume, contentLoaded]);
+  }, [editor, modifiedResume, originalResume, contentLoaded]);
 
 
   React.useEffect(() => {
@@ -307,8 +307,12 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
       }
 
       typeNextChar();
-    } catch (error) {
-      console.error("Error calling transform API:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error calling transform API:", error.message);
+      } else {
+        console.error("Unknown error calling transform API:", error);
+      }
     }
   };
 

@@ -15,30 +15,11 @@ export default function TailoResumeDashboard({ setResumeContent, setJobTitle }: 
   const [jobUrl, setJobUrl] = useState<string>("https://www.linkedin.com/jobs/view/4264440346");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [credits, setCredits] = useState<number>(0);
 
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLButtonElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
-
-  useEffect(() => {
-    const fetchCredits = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const db = getFirestore();
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        setCredits(userData?.credits ?? 0);
-      }
-    };
-
-    fetchCredits();
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -99,9 +80,9 @@ export default function TailoResumeDashboard({ setResumeContent, setJobTitle }: 
       }
 
       const userData = userSnap.data();
-      const credits = userData?.credits ?? 0;
+      const userCredits = userData?.credits ?? 0;
 
-      if (credits <= 0) {
+      if (userCredits <= 0) {
         setShowNoCreditsModal(true);
         setIsProcessing(false);
         return;

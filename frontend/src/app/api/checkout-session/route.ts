@@ -13,8 +13,9 @@ export async function GET(req: NextRequest) {
     });
 
     return new Response(JSON.stringify(session), { status: 200 });
-  } catch (err: any) {
-    console.error('Error retrieving session:', err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+  } catch (err) {
+    const error = err as Error;
+    console.error('Error retrieving session:', error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
