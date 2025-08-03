@@ -4,20 +4,41 @@ import React, { useState, useEffect, useRef } from 'react';
 import DashboardMain from '@/app/components/DashboardMain';
 import * as mammoth from 'mammoth';
 import { getAuth } from "firebase/auth";
+import { getFirestore, doc, updateDoc, increment, getDoc } from "firebase/firestore";
 
 interface DashboardProps {
-  setResumeContent: (original: string, modified: string) => void;
+  setResumeContent: (original: string, modifiedPromise: Promise<string>) => void;
   setJobTitle: (title: string) => void;
 }
 
 export default function TailoResumeDashboard({ setResumeContent, setJobTitle }: DashboardProps) {
-  const [jobUrl, setJobUrl] = useState<string>("https://example.com/job-posting");
+  const [jobUrl, setJobUrl] = useState<string>("https://www.linkedin.com/jobs/view/4264440346");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [credits, setCredits] = useState<number>(0);
 
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLButtonElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const db = getFirestore();
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        setCredits(userData?.credits ?? 0);
+      }
+    };
+
+    fetchCredits();
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -58,6 +79,33 @@ export default function TailoResumeDashboard({ setResumeContent, setJobTitle }: 
     setIsProcessing(true);
 
     try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        console.error("User not authenticated");
+        setIsProcessing(false);
+        return;
+      }
+
+      const db = getFirestore();
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        console.error("User document does not exist");
+        setIsProcessing(false);
+        return;
+      }
+
+      const userData = userSnap.data();
+      const credits = userData?.credits ?? 0;
+
+      if (credits <= 0) {
+        setShowNoCreditsModal(true);
+        setIsProcessing(false);
+        return;
+      }
       // 1. Extract job title & text using Diffbot
       const token = process.env.NEXT_PUBLIC_DIFFBOT_TOKEN!;
       const diffbotUrl = `https://api.diffbot.com/v3/job?token=${token}&url=${encodeURIComponent(jobUrl)}`;
@@ -83,17 +131,14 @@ export default function TailoResumeDashboard({ setResumeContent, setJobTitle }: 
 
       // 3. Send original resume + job data to backend for tailoring
 
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user) {
-        console.error("User not authenticated");
-        return;
-      }
-
       const idToken = await user.getIdToken();
 
-      const backendResponse = await fetch('https://backend-late-snow-4268.fly.dev/tailor', {
+      await updateDoc(userRef, {
+        credits: increment(-1),
+        tailorCalls: increment(1)
+      });
+
+      const tailoredResumePromise = fetch('https://backend-late-snow-4268.fly.dev/tailor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,17 +148,19 @@ export default function TailoResumeDashboard({ setResumeContent, setJobTitle }: 
           jobContent: combinedJobContent,
           resumeContent: originalHtml,
         }),
-      });
+      })
+        .then(res => {
+          if (!res.ok) throw new Error(`Backend error: ${res.statusText}`);
+          return res.json();
+        })
+        .then(data => data.tailoredResume || originalHtml)
+        .catch(error => {
+          console.error("Failed to get tailored resume:", error);
+          return originalHtml;
+        });
 
-      if (!backendResponse.ok) {
-        throw new Error(`Backend API error: ${backendResponse.statusText}`);
-      }
-
-      const result = await backendResponse.json();
-      const tailoredHtml = result.tailoredResume || originalHtml;
-
-      // 4. Send both original and tailored resumes to wrapper
-      setResumeContent(originalHtml, tailoredHtml);
+      // Immediately show editor with original, modified loads when ready
+      setResumeContent(originalHtml, tailoredResumePromise);
     } catch (error) {
       console.error('Error during tailoring resume:', error);
       alert('An error occurred while tailoring your resume.');
@@ -132,6 +179,20 @@ export default function TailoResumeDashboard({ setResumeContent, setJobTitle }: 
         handleFileUpload={handleFileUpload}
         handleTailorResume={handleTailorResume}
       />
+      {showNoCreditsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl max-w-sm text-center">
+            <h2 className="text-xl font-semibold mb-2">No Credits Left</h2>
+            <p className="mb-4">You’ve run out of resume tailoring credits.</p>
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              onClick={() => setShowNoCreditsModal(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

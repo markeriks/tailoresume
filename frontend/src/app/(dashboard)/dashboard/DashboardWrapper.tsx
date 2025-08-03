@@ -12,10 +12,13 @@ export default function DashboardWrapper() {
   const [jobTitle, setJobTitle] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
 
-  const handleResumeReady = (original: string, modified: string) => {
+  const handleResumeReady = (original: string, modifiedPromise: Promise<string>) => {
     setOriginalResume(original);
-    setModifiedResume(modified);
-    setShowEditor(true);
+    setShowEditor(true); // Show editor immediately
+
+    modifiedPromise.then(modified => {
+      setModifiedResume(modified);
+    });
   };
 
   return (
@@ -40,7 +43,7 @@ export default function DashboardWrapper() {
           </motion.div>
         )}
 
-        {showEditor && originalResume && modifiedResume && (
+        {showEditor && originalResume && (
           <motion.div
             key="editor"
             initial={{ opacity: 0, x: 50 }}

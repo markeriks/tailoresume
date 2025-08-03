@@ -39,10 +39,14 @@ export default function Signup() {
       await setDoc(doc(db, 'users', user.uid), {
         fullName,
         email: user.email,
+        plan: null,
+        credits: 2,
+        tailorCalls: 0,
+        selectCalls: 0,
         createdAt: serverTimestamp(),
       });
 
-      // router.push('/dashboard');
+      router.push('/plans');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -50,7 +54,7 @@ export default function Signup() {
         setError('Signup failed');
       }
     } finally {
-      setLoading(true);
+      setLoading(false);
     }
   };
 
@@ -64,10 +68,14 @@ export default function Signup() {
       await setDoc(doc(db, 'users', user.uid), {
         fullName: user.displayName || '',
         email: user.email,
+        plan: null,
+        credits: 2,
+        tailorCalls: 0,
+        selectCalls: 0,
         createdAt: serverTimestamp(),
       });
 
-      // router.push('/dashboard');
+      router.push('/plans');
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -75,7 +83,7 @@ export default function Signup() {
         setError('Google sign-in failed');
       }
     } finally {
-      setLoading(true);
+      setLoading(false);
     }
   };
 

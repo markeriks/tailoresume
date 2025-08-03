@@ -39,7 +39,7 @@ export default function Signin() {
     setLoading(true);
     try {
       await signInWithPopup(auth, googleProvider);
-      // router.push("/dashboard");
+      router.push("/dashboard");
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -47,7 +47,7 @@ export default function Signin() {
         setError("Google sign-in failed");
       }
     } finally {
-      setLoading(true);
+      setLoading(false);
     }
   };
 

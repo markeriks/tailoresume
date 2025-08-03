@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
 
+type PricingComponentProps = {
+  title?: string;
+};
 
 type BillingPeriod = 'monthly' | 'quarterly';
 
@@ -25,8 +28,19 @@ type PlansData = {
   };
 };
 
-export default function PricingComponent() {
+export default function PricingComponent({ title }: PricingComponentProps) {
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('quarterly');
+
+  const priceIdMap = {
+    standard: {
+      monthly: 'price_1Rs64BGvBUCut5qmT1nvGJpv',
+      quarterly: 'price_1Rs66VGvBUCut5qmYuWWav6W',
+    },
+    pro: {
+      monthly: 'price_1Rs673GvBUCut5qmnhPP9GNQ',
+      quarterly: 'price_1Rs67xGvBUCut5qmCZ0ahVfV',
+    },
+  };
 
   const plans: PlansData = {
     monthly: {
@@ -43,7 +57,7 @@ export default function PricingComponent() {
 
   const features = {
     free: [
-      '1 tailored resume per month',
+      '2 tailored resumes per month',
       'Basic ATS keyword optimization',
       'Upload and edit your resume',
       'Download in PDF format',
@@ -72,29 +86,49 @@ export default function PricingComponent() {
 
   const currentPricing = plans[billingPeriod];
 
+  const handleSubscribe = async (plan: 'standard' | 'pro') => {
+    const priceId = priceIdMap[plan][billingPeriod];
+
+    const res = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      body: JSON.stringify({ priceId }),
+    });
+
+    const data = await res.json();
+
+    if (data?.url) {
+      window.location.href = data.url;
+    } else {
+      alert('Error starting checkout');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-20 px-4">
       <div className="max-w-7xl mx-auto">
+        {title && (
+          <h2 className="text-5xl font-bold text-gray-900 mb-14 text-center">
+            {title}
+          </h2>
+        )}
 
         <div className="flex justify-center mb-12">
           <div className="bg-gray-100 p-1 rounded-lg flex relative">
             <button
               onClick={() => setBillingPeriod('monthly')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
-                billingPeriod === 'monthly'
-                  ? 'bg-white text-orange-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${billingPeriod === 'monthly'
+                ? 'bg-white text-orange-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setBillingPeriod('quarterly')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
-                billingPeriod === 'quarterly'
-                  ? 'bg-white text-orange-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${billingPeriod === 'quarterly'
+                ? 'bg-white text-orange-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               Quarterly
             </button>
@@ -115,6 +149,7 @@ export default function PricingComponent() {
             period={currentPricing.free.period}
             features={features.free}
             buttonLabel="Get started"
+            isFree
           />
           <PricingCard
             label="Standard"
@@ -126,6 +161,7 @@ export default function PricingComponent() {
             buttonLabel="Subscribe"
             badge="Popular"
             discount={billingPeriod === 'quarterly'}
+            onSubscribe={() => handleSubscribe('standard')}
           />
           <PricingCard
             label="Pro"
@@ -136,6 +172,7 @@ export default function PricingComponent() {
             features={features.pro}
             buttonLabel="Subscribe"
             discount={billingPeriod === 'quarterly'}
+            onSubscribe={() => handleSubscribe('pro')}
           />
         </div>
       </div>
@@ -153,6 +190,8 @@ type CardProps = {
   buttonLabel: string;
   badge?: string;
   discount?: boolean;
+  onSubscribe?: () => void;
+  isFree?: boolean;
 };
 
 function PricingCard({
@@ -164,7 +203,9 @@ function PricingCard({
   features,
   buttonLabel,
   badge,
-  discount
+  discount,
+  onSubscribe,
+  isFree,
 }: CardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-8 relative">
@@ -195,11 +236,20 @@ function PricingCard({
         </p>
       </div>
 
-      <Link href="/signup">
-        <button className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors mb-8">
+      {isFree ? (
+        <Link href="/dashboard">
+          <button className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors mb-8">
+            {buttonLabel}
+          </button>
+        </Link>
+      ) : (
+        <button
+          onClick={onSubscribe}
+          className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors mb-8"
+        >
           {buttonLabel}
         </button>
-      </Link>
+      )}
 
       <ul className="space-y-4">
         {features.map((feature, index) => (

@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { getAuth } from "firebase/auth";
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
-
+import { motion, AnimatePresence } from 'framer-motion'
 
 // --- Extensions ---
 import { StarterKit } from '@tiptap/starter-kit'
@@ -74,7 +74,7 @@ import { SelectionToolbar } from '@/app/components/SelectionToolbar'
 
 interface SimpleEditorProps {
   originalResume: string;
-  modifiedResume: string;
+  modifiedResume: string | null;
   jobTitle?: string | null;
 }
 
@@ -84,6 +84,12 @@ function highlightTextDiff(original: string, modified: string): string {
   const parser = new DOMParser();
   const origDoc = parser.parseFromString(`<div>${original}</div>`, 'text/html');
   const modDoc = parser.parseFromString(`<div>${modified}</div>`, 'text/html');
+  const origRoot = origDoc.body.firstElementChild;
+  const modRoot = modDoc.body.firstElementChild;
+  if (!origRoot || !modRoot) {
+    console.warn("Empty parsed DOM. Skipping diff.");
+    return modified;
+  }
 
   // 2. Recursive function to diff text nodes
   function diffNodes(origNode: ChildNode, modNode: ChildNode) {
@@ -105,14 +111,17 @@ function highlightTextDiff(original: string, modified: string): string {
       for (let i = 0; i < origNode.childNodes.length; i++) {
         diffNodes(origNode.childNodes[i], modNode.childNodes[i]);
       }
+    } else {
+      console.warn("Different number of child nodes, skipping recursion");
     }
   }
 
-  diffNodes(origDoc.body.firstChild!, modDoc.body.firstChild!);
+  diffNodes(origRoot!, modRoot!);
 
   // 3. Return modified innerHTML without the wrapper <div>
   return (modDoc.body.firstChild as Element)?.innerHTML || '';
 }
+
 
 const ParagraphWithClass = Paragraph.extend({
   addAttributes() {
@@ -140,6 +149,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
 
   const [selectionRect, setSelectionRect] = React.useState<DOMRect | null>(null)
   const [selectedText, setSelectedText] = React.useState('')
+  const [contentLoaded, setContentLoaded] = React.useState(false);
 
   const editor = useEditor({
     editorProps: {
@@ -155,7 +165,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
       StarterKit.configure({
         paragraph: false,
         horizontalRule: false,
-        link: { openOnClick: false, enableClickSelection: true },
+        link: { openOnClick: false, enableClickSelection: false },
       }),
       ParagraphWithClass,
       HorizontalRule,
@@ -176,10 +186,16 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
 
     onCreate({ editor }) {
       if (originalResume && modifiedResume) {
-        console.log("Original Resume:", originalResume);
-        console.log("Modified Resume:", modifiedResume);
         const highlightedContent = highlightTextDiff(originalResume, modifiedResume);
-        editor.commands.setContent(highlightedContent, { parseOptions: { preserveWhitespace: false } });
+        editor.commands.setContent(highlightedContent, {
+          parseOptions: { preserveWhitespace: false },
+        });
+        setContentLoaded(true);
+      } else {
+        // Fallback: just load original while waiting
+        editor.commands.setContent(originalResume, {
+          parseOptions: { preserveWhitespace: false },
+        });
       }
     },
 
@@ -191,6 +207,17 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
     editor,
     overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
   })
+
+  React.useEffect(() => {
+    if (!editor || !modifiedResume || contentLoaded) return;
+
+    setTimeout(() => {
+      const highlighted = highlightTextDiff(originalResume, modifiedResume);
+      editor.commands.setContent(highlighted, { parseOptions: { preserveWhitespace: false } });
+      setContentLoaded(true);
+    }, 400);
+  }, [editor, modifiedResume, contentLoaded]);
+
 
   React.useEffect(() => {
     if (!isMobile && mobileView !== 'main') {
@@ -363,11 +390,24 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
 
   return (
     <div className="simple-editor-wrapper mt-10 md:mt-25">
-      {jobTitle && (
-        <div className="mb-4 p-4 rounded-xl bg-gray-100 text-gray-800 text-lg font-medium">
-          Tailoring resume to: <span className="font-semibold">{jobTitle}</span>
+      {jobTitle && !contentLoaded && (
+        <div className="relative mb-4 p-4 rounded-xl bg-green-50 border border-green-300 text-green-800 text-base font-medium overflow-hidden transition-all duration-500">
+          <div className="flex items-center justify-between">
+            <span>
+              Tailoring resume to: <span className="font-semibold">{jobTitle}</span>
+            </span>
+          </div>
+
+          {/* Animated progress bar */}
+          <div className="mt-2 w-full h-2 bg-green-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-green-500 rounded-full progress-bar"
+            />
+          </div>
         </div>
       )}
+
+
 
       {editor && (
         <EditorContext.Provider value={{ editor }}>
@@ -406,7 +446,42 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
             <SelectionToolbar rect={selectionRect} selectedText={selectedText} onAction={onSelectionAction} />
           )}
 
-          <EditorContent editor={editor} role="presentation" className="simple-editor-content" />
+          <AnimatePresence mode="wait">
+            {!contentLoaded && (
+              <motion.div
+                key="original"
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="editor-wrapper"
+              >
+                <EditorContent
+                  editor={editor}
+                  role="presentation"
+                  className="simple-editor-content"
+                />
+              </motion.div>
+            )}
+
+            {contentLoaded && (
+              <motion.div
+                key="modified"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="editor-wrapper"
+              >
+                <EditorContent
+                  editor={editor}
+                  role="presentation"
+                  className="simple-editor-content"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
         </EditorContext.Provider>
       )}
     </div>
