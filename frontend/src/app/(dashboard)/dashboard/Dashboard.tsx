@@ -9,9 +9,11 @@ import { getFirestore, doc, updateDoc, increment, getDoc } from "firebase/firest
 interface DashboardProps {
   setResumeContent: (original: string, modifiedPromise: Promise<string>) => void;
   setJobTitle: (title: string) => void;
+  credits: number;
+  setCredits: React.Dispatch<React.SetStateAction<number>>;
 }
 
-export default function TailoResumeDashboard({ setResumeContent, setJobTitle }: DashboardProps) {
+export default function TailoResumeDashboard({ setResumeContent, setJobTitle, setCredits }: DashboardProps) {
   const [jobUrl, setJobUrl] = useState<string>("https://www.linkedin.com/jobs/view/4264440346");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -118,6 +120,7 @@ export default function TailoResumeDashboard({ setResumeContent, setJobTitle }: 
         credits: increment(-1),
         tailorCalls: increment(1)
       });
+      setCredits((prevCredits: number) => prevCredits - 1);
 
       const tailoredResumePromise = fetch('https://backend-late-snow-4268.fly.dev/tailor', {
         method: 'POST',

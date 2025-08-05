@@ -2,8 +2,11 @@
 
 import * as React from 'react'
 import { getAuth } from "firebase/auth";
+import { getFirestore, doc, updateDoc, increment } from "firebase/firestore";
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Check, X } from 'lucide-react'
+import html2pdf from 'html2pdf.js';
 
 // --- Extensions ---
 import { StarterKit } from '@tiptap/starter-kit'
@@ -46,11 +49,6 @@ import {
   ColorHighlightPopoverContent,
   ColorHighlightPopoverButton,
 } from '@/components/tiptap-ui/color-highlight-popover'
-import {
-  LinkPopover,
-  LinkContent,
-  LinkButton,
-} from '@/components/tiptap-ui/link-popover'
 import { MarkButton } from '@/components/tiptap-ui/mark-button'
 import { TextAlignButton } from '@/components/tiptap-ui/text-align-button'
 import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button'
@@ -62,9 +60,6 @@ import { LinkIcon } from '@/components/tiptap-icons/link-icon'
 
 // --- Hooks ---
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useWindowSize } from '@/hooks/use-window-size'
-import { useCursorVisibility } from '@/hooks/use-cursor-visibility'
-import { useScrolling } from '@/hooks/use-scrolling'
 
 // --- Styles ---
 import '@/components/tiptap-templates/simple/simple-editor.scss'
@@ -99,10 +94,10 @@ function highlightTextDiff(original: string, modified: string): string {
 
       // Simple diff — highlight all text differences by wrapping changed parts
       if (origText !== modText) {
-        console.log("Text nodes differ:", origText, modText);
         const parent = modNode.parentElement;
         if (parent) {
           parent.classList.add('highlight');
+          parent.setAttribute('data-original', origText);
         }
       }
     } else if (origNode.childNodes.length === modNode.childNodes.length) {
@@ -139,17 +134,61 @@ const ParagraphWithClass = Paragraph.extend({
   },
 });
 
+// Changes Popup Component
+const ChangesPopup = ({ 
+  onApplyChanges, 
+  onRollback, 
+  show 
+}: { 
+  onApplyChanges: () => void;
+  onRollback: () => void;
+  show: boolean;
+}) => {
+  if (!show) return null;
 
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4 flex items-center gap-3"
+      style={{ top: '7rem' }}
+    >
+      <span className="text-sm font-medium text-gray-700">
+        Resume has been modified
+      </span>
+      <div className="flex gap-2">
+        <Button
+          onClick={onApplyChanges}
+          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 text-sm rounded-md flex items-center gap-1"
+        >
+          <Check size={14} />
+          Apply Changes
+        </Button>
+        <Button
+          onClick={onRollback}
+          className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 text-sm rounded-md flex items-center gap-1"
+        >
+          <X size={14} />
+          Rollback
+        </Button>
+      </div>
+    </motion.div>
+  );
+};
 
 export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: SimpleEditorProps) {
   const isMobile = useIsMobile()
-  const windowSize = useWindowSize()
   const [mobileView, setMobileView] = React.useState<'main' | 'highlighter' | 'link'>('main')
   const toolbarRef = React.useRef<HTMLDivElement>(null)
+  const [copied, setCopied] = React.useState(false);
 
   const [selectionRect, setSelectionRect] = React.useState<DOMRect | null>(null)
   const [selectedText, setSelectedText] = React.useState('')
   const [contentLoaded, setContentLoaded] = React.useState(false);
+  const [showChangesPopup, setShowChangesPopup] = React.useState(false);
+  const [editorDisabled, setEditorDisabled] = React.useState(false);
 
   const editor = useEditor({
     editorProps: {
@@ -165,7 +204,6 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
       StarterKit.configure({
         paragraph: false,
         horizontalRule: false,
-        link: { openOnClick: false, enableClickSelection: false },
       }),
       ParagraphWithClass,
       HorizontalRule,
@@ -179,7 +217,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
       Selection,
     ],
     content: '',
-    editable: true,
+    editable: !editorDisabled,
     injectCSS: true,
     autofocus: false,
     parseOptions: { preserveWhitespace: false },
@@ -191,6 +229,8 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
           parseOptions: { preserveWhitespace: false },
         });
         setContentLoaded(true);
+        setShowChangesPopup(true);
+        setEditorDisabled(true);
       } else {
         // Fallback: just load original while waiting
         editor.commands.setContent(originalResume, {
@@ -202,12 +242,6 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
     immediatelyRender: false,
   })
 
-  const isScrolling = useScrolling()
-  const rect = useCursorVisibility({
-    editor,
-    overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
-  })
-
   React.useEffect(() => {
     if (!editor || !modifiedResume || contentLoaded) return;
 
@@ -215,9 +249,47 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
       const highlighted = highlightTextDiff(originalResume, modifiedResume);
       editor.commands.setContent(highlighted, { parseOptions: { preserveWhitespace: false } });
       setContentLoaded(true);
+      setShowChangesPopup(true);
+      setEditorDisabled(true);
     }, 400);
   }, [editor, modifiedResume, originalResume, contentLoaded]);
 
+  // Function to apply changes by removing 'highlight' class from all nodes
+  const applyChanges = React.useCallback(() => {
+    if (!editor) return;
+
+    const { tr } = editor.state;
+    let modified = false;
+
+    editor.state.doc.descendants((node, pos) => {
+      if (node.attrs && node.attrs.class && node.attrs.class.includes('highlight')) {
+        const newClass = node.attrs.class.replace(/\bhighlight\b/g, '').trim() || null;
+        tr.setNodeMarkup(pos, null, { ...node.attrs, class: newClass });
+        modified = true;
+      }
+    });
+
+    if (modified) {
+      editor.view.dispatch(tr);
+    }
+
+    setShowChangesPopup(false);
+    setEditorDisabled(false);
+    editor.setEditable(true);
+  }, [editor]);
+
+  // Function to rollback to original resume
+  const rollbackChanges = React.useCallback(() => {
+    if (!editor) return;
+
+    editor.commands.setContent(originalResume, {
+      parseOptions: { preserveWhitespace: false },
+    });
+
+    setShowChangesPopup(false);
+    setEditorDisabled(false);
+    editor.setEditable(true);
+  }, [editor, originalResume]);
 
   React.useEffect(() => {
     if (!isMobile && mobileView !== 'main') {
@@ -269,6 +341,13 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
         console.error("User not authenticated");
         return;
       }
+
+      const db = getFirestore();
+      const userRef = doc(db, "users", user.uid);
+
+      await updateDoc(userRef, {
+        selectCalls: increment(1),
+      });
 
       const idToken = await user.getIdToken();
 
@@ -335,13 +414,12 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
         </Button>
       </ToolbarGroup>
       <ToolbarSeparator />
-      {type === 'highlighter' ? <ColorHighlightPopoverContent /> : <LinkContent />}
+      <ColorHighlightPopoverContent />
     </>
   )
 
   const MainToolbarContent = ({
     onHighlighterClick,
-    onLinkClick,
     isMobile,
   }: {
     onHighlighterClick: () => void
@@ -373,7 +451,6 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
         ) : (
           <ColorHighlightPopoverButton onClick={onHighlighterClick} />
         )}
-        {!isMobile ? <LinkPopover /> : <LinkButton onClick={onLinkClick} />}
       </ToolbarGroup>
       <ToolbarSeparator />
       <ToolbarGroup>
@@ -387,6 +464,59 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
         <TextAlignButton align="right" />
         <TextAlignButton align="justify" />
       </ToolbarGroup>
+      <ToolbarSeparator />
+      <ToolbarGroup>
+        <Button
+          onClick={async () => {
+            if (!editor) return;
+            const html = editor.getHTML();
+            try {
+              if (navigator.clipboard && window.ClipboardItem) {
+                await navigator.clipboard.write([
+                  new ClipboardItem({
+                    'text/html': new Blob([html], { type: 'text/html' }),
+                  }),
+                ]);
+              } else {
+                await navigator.clipboard.writeText(editor.getText());
+              }
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            } catch (err) {
+              console.error('Failed to copy: ', err);
+            }
+          }}
+        >
+          {copied ? (
+            <>
+              <Check size={16} />
+              Copied
+            </>
+          ) : (
+            'Copy Resume'
+          )}
+        </Button>
+
+        <Button onClick={() => {
+          const element = document.querySelector('.simple-editor-content');
+          if (!element) return;
+
+          const opt = {
+            margin: [15, 0, 15, 0],
+            filename: 'resume.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] }
+          };
+
+          html2pdf().set(opt).from(element).save().catch((err: unknown) => {
+            console.error('PDF generation error:', err);
+          });
+        }}>
+          Download Resume
+        </Button>
+      </ToolbarGroup>
       <Spacer />
       {isMobile && <ToolbarSeparator />}
     </>
@@ -394,8 +524,17 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
 
   return (
     <div className="simple-editor-wrapper mt-10 md:mt-25">
+      {/* Changes Popup */}
+      <AnimatePresence>
+        <ChangesPopup
+          show={showChangesPopup}
+          onApplyChanges={applyChanges}
+          onRollback={rollbackChanges}
+        />
+      </AnimatePresence>
+
       {jobTitle && !contentLoaded && (
-        <div className="relative mb-4 p-4 rounded-xl bg-green-50 border border-green-300 text-green-800 text-base font-medium overflow-hidden transition-all duration-500">
+        <div className="relative md:fixed md:top-30 md:right-4 mt-15 md:mt-0 mb-4 p-4 rounded-xl bg-green-50 border border-green-300 text-green-800 text-base font-medium overflow-hidden transition-all duration-500 max-w-md mx-auto md:mx-0">
           <div className="flex items-center justify-between">
             <span>
               Tailoring resume to: <span className="font-semibold">{jobTitle}</span>
@@ -411,8 +550,6 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
         </div>
       )}
 
-
-
       {editor && (
         <EditorContext.Provider value={{ editor }}>
           <Toolbar
@@ -421,17 +558,10 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
               position: 'fixed',
               left: 0,
               right: 0,
-              zIndex: 2,
-              ...(isMobile
-                ? {
-                  bottom: `calc(100% - ${windowSize.height - rect.y}px)`,
-                }
-                : {
-                  top: 64,
-                }),
-              ...(isScrolling && isMobile
-                ? { opacity: 0, transition: 'opacity 0.1s ease-in-out' }
-                : {}),
+              zIndex: 5,
+              top: 64,
+              opacity: 1,
+              pointerEvents: editorDisabled ? 'none' : 'auto',
             }}
           >
             {mobileView === 'main' ? (
@@ -446,7 +576,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
           </Toolbar>
 
           {/* Selection Toolbar */}
-          {selectionRect && selectedText && (
+          {selectionRect && selectedText && !editorDisabled && (
             <SelectionToolbar rect={selectionRect} selectedText={selectedText} onAction={onSelectionAction} />
           )}
 
@@ -463,7 +593,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
                 <EditorContent
                   editor={editor}
                   role="presentation"
-                  className="simple-editor-content"
+                  className={`simple-editor-content ${editorDisabled ? 'pointer-events-none opacity-75' : ''}`}
                 />
               </motion.div>
             )}
@@ -480,7 +610,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
                 <EditorContent
                   editor={editor}
                   role="presentation"
-                  className="simple-editor-content"
+                  className={`simple-editor-content ${editorDisabled ? 'pointer-events-none' : ''}`}
                 />
               </motion.div>
             )}

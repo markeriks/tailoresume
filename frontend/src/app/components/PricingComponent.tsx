@@ -143,7 +143,7 @@ export default function PricingComponent({ title }: PricingComponentProps) {
         <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
           <PricingCard
             label="Free"
-            color="green"
+            color="bg-green-500"
             price={currentPricing.free.price}
             billingPeriod={billingPeriod}
             period={currentPricing.free.period}
@@ -153,7 +153,7 @@ export default function PricingComponent({ title }: PricingComponentProps) {
           />
           <PricingCard
             label="Standard"
-            color="blue"
+            color="bg-blue-500"
             price={billingPeriod === 'quarterly' ? (currentPricing.standard.price / 3).toFixed(0) : currentPricing.standard.price}
             billingPeriod={billingPeriod}
             period={currentPricing.standard.period}
@@ -165,7 +165,7 @@ export default function PricingComponent({ title }: PricingComponentProps) {
           />
           <PricingCard
             label="Pro"
-            color="purple"
+            color="bg-purple-500"
             price={billingPeriod === 'quarterly' ? (currentPricing.pro.price / 3).toFixed(0) : currentPricing.pro.price}
             billingPeriod={billingPeriod}
             period={currentPricing.pro.period}
@@ -218,13 +218,13 @@ function PricingCard({
       )}
 
       <div className="flex items-center mb-4">
-        <div className={`w-2 h-2 bg-${color}-500 rounded-full mr-3`} />
+        <div className={`w-2 h-2 ${color} rounded-full mr-3`} />
         <h3 className="text-lg font-semibold text-gray-900">{label}</h3>
       </div>
 
       <div className="mb-6">
         <div className="flex items-baseline">
-          <span className="text-4xl font-bold text-gray-900">${price}</span>
+          <span className="text-4xl font-bold text-gray-900">{price}€</span>
           {discount && (
             <span className="ml-3 bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-xs font-medium">
               20% off
@@ -232,7 +232,11 @@ function PricingCard({
           )}
         </div>
         <p className="text-gray-600 text-sm mt-1">
-          {billingPeriod === 'quarterly' ? 'per month, billed every 3 months' : period}
+          {label === 'Free'
+            ? 'per month'
+            : billingPeriod === 'quarterly'
+              ? 'per month, billed every 3 months'
+              : period}
         </p>
       </div>
 

@@ -17,13 +17,6 @@ body {
 @import '../styles/_keyframe-animations.scss';
 
 
-.ql-font-maven-pro {
-  font-family: 'Maven Pro', sans-serif !important;
-  font-optical-sizing: auto !important;
-  font-weight: 400 !important;
-  font-style: normal !important;
-}
-
 .simple-editor.ProseMirror p:not(:first-child) {
   margin-top: 10px !important;
   line-height: 1.4 !important;
@@ -63,4 +56,20 @@ body {
 .progress-bar {
   animation: progressBarSlide 1.8s ease-in-out infinite;
   width: 100%;
+}
+
+.simple-editor-content p, 
+.simple-editor-content h1, 
+.simple-editor-content h2, 
+.simple-editor-content h3, 
+.simple-editor-content ul, 
+.simple-editor-content ol, 
+.simple-editor-content blockquote {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.simple-editor-content {
+  page-break-after: auto;
+  break-after: auto;
 }

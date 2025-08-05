@@ -9,8 +9,8 @@ export async function POST(req: Request) {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:3000/cancel`,
+      success_url: `http://tailoresume.com/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://tailoresume.com/cancel`,
     });
 
     return NextResponse.json({ url: session.url });

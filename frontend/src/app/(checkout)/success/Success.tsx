@@ -6,7 +6,7 @@ import logo from '@/app/assets/logo.png';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { doc, getFirestore, increment, updateDoc } from 'firebase/firestore';
+import { doc, getFirestore, increment, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 
 export default function SuccessPage() {
@@ -39,12 +39,14 @@ export default function SuccessPage() {
                 if (/standard/i.test(productName)) {
                     creditsToAdd = 10;
                 } else if (/pro/i.test(productName)) {
-                    creditsToAdd = 200;
+                    creditsToAdd = 300;
                 }
 
                 if (creditsToAdd > 0) {
                     await updateDoc(userRef, {
                         credits: increment(creditsToAdd),
+                        lastCreditRefill: serverTimestamp(),
+                        planName: productName,
                     });
                     setUserVerified(true);
                 }
@@ -80,11 +82,11 @@ export default function SuccessPage() {
                         You’re now subscribed{planName ? ` to the ${planName}` : ''}.
                     </p>
                     <p className="text-gray-500 mb-10">
-                        {planName?.toLowerCase().includes('pro') ? '200' : '10'} credits have been added to your
+                        {planName?.toLowerCase().includes('pro') ? '300' : '10'} credits have been added to your
                         account.
                     </p>
                     <Link href="/dashboard">
-                        <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition">
+                        <button className="bg-gray-800 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition">
                             Go to Dashboard
                         </button>
                     </Link>

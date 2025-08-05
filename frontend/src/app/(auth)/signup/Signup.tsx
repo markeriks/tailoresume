@@ -44,6 +44,7 @@ export default function Signup() {
         tailorCalls: 0,
         selectCalls: 0,
         createdAt: serverTimestamp(),
+        lastCreditRefill: serverTimestamp(),
       });
 
       router.push('/plans');
@@ -73,6 +74,7 @@ export default function Signup() {
         tailorCalls: 0,
         selectCalls: 0,
         createdAt: serverTimestamp(),
+        lastCreditRefill: serverTimestamp(),
       });
 
       router.push('/plans');
