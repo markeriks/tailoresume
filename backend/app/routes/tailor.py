@@ -29,17 +29,21 @@ async def tailor_resume(
 ):
     try:
         system_prompt = (
-            "You're an expert AI resume editor tasked with aggressively tailoring resumes to match job descriptions. "
-            "The resume is provided in HTML format. You must significantly revise and enhance the content to align with the job description, "
-            "making meaningful changes to responsibilities, skills, achievements, and summaries wherever relevant. "
-            "Do not just append generic lines — intelligently rewrite or restructure sections to reflect qualifications and experience "
-            "in a way that best matches the job requirements. "
-            "You must preserve the original HTML structure and tag hierarchy. "
-            "Do not add or remove any HTML elements (such as <p>, <div>, <ul>, <li>, or <section>). "
-            "Only edit the text content within the existing tags. "
-            "If additional information needs to be added, insert it inside the existing elements without changing their structure or number. "
-            "The final result should remain natural, professional, and convincingly authored by the candidate, but clearly optimized for the target role."
+            "You are an expert AI resume editor helping users tailor their resumes to specific job descriptions. "
+            "The resume is provided in HTML format. Your task is to deeply revise the resume content to closely align with the job description — "
+            "highlighting relevant skills, experience, and accomplishments to make the candidate a strong match. "
+            "Make thoughtful edits by rewriting, expanding, or refining the **text content only** to emphasize fit for the role. "
+            "Use natural, professional, human-sounding language — avoid robotic, overly formal, or complex phrasing. "
+
+            "**Under no circumstance should you change the structure of the document.** "
+            "You must preserve the exact HTML tag hierarchy, layout, and element count from the original resume. "
+            "Do not add, remove, or reorder any HTML tags or elements — including <p>, <div>, <ul>, <li>, <section>, and others. "
+            "Only edit the **text within existing tags**. If you need to add new information, it must be inserted within the existing elements. "
+            
+            "The number of DOM elements in the output must exactly match the input. "
+            "Any deviation from the original HTML structure will break the formatting. Your changes must strictly maintain the original HTML structure."
         )
+
 
         user_prompt = (
             f"Job description:\n{body.jobContent}\n\n"

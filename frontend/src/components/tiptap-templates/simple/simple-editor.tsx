@@ -2,11 +2,12 @@
 
 import * as React from 'react'
 import { getAuth } from "firebase/auth";
-import { getFirestore, doc, updateDoc, increment } from "firebase/firestore";
+import { getFirestore, doc, updateDoc, increment, getDoc } from "firebase/firestore";
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, X } from 'lucide-react'
+import { Check, X, Upload, Link, FileText, Sparkles, ArrowRight } from 'lucide-react'
 import html2pdf from 'html2pdf.js';
+import * as mammoth from 'mammoth';
 
 // --- Extensions ---
 import { StarterKit } from '@tiptap/starter-kit'
@@ -68,9 +69,7 @@ import '@/components/tiptap-templates/simple/simple-editor.scss'
 import { SelectionToolbar } from '@/app/components/SelectionToolbar'
 
 interface SimpleEditorProps {
-  originalResume: string;
-  modifiedResume: string | null;
-  jobTitle?: string | null;
+  setCredits: React.Dispatch<React.SetStateAction<number>>;
 }
 
 function highlightTextDiff(original: string, modified: string): string {
@@ -116,7 +115,6 @@ function highlightTextDiff(original: string, modified: string): string {
   // 3. Return modified innerHTML without the wrapper <div>
   return (modDoc.body.firstChild as Element)?.innerHTML || '';
 }
-
 
 const ParagraphWithClass = Paragraph.extend({
   addAttributes() {
@@ -178,7 +176,136 @@ const ChangesPopup = ({
   );
 };
 
-export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: SimpleEditorProps) {
+// Setup Container Component
+const SetupContainer = ({
+  currentStep,
+  jobUrl,
+  setJobUrl,
+  uploadedFile,
+  handleFileUpload,
+  handleContinueToEditor,
+  onStepNext,
+}: {
+  currentStep: 1 | 2;
+  jobUrl: string;
+  setJobUrl: (url: string) => void;
+  uploadedFile: File | null;
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleContinueToEditor: () => void;
+  onStepNext: () => void;
+}) => {
+  return (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-40">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 max-w-2xl w-full mx-4"
+      >
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center space-x-4">
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'} text-sm font-semibold`}>
+              1
+            </div>
+            <div className={`w-12 h-1 ${currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'} rounded`}></div>
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'} text-sm font-semibold`}>
+              2
+            </div>
+          </div>
+        </div>
+
+        {currentStep === 1 && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="text-center"
+          >
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+              Enter Job Posting URL
+            </h2>
+            <p className="text-gray-600 mb-8">
+              Paste the URL of the job you're applying for to get started
+            </p>
+            
+            <div className="space-y-4 mb-8">
+              <div className="flex items-center space-x-2 mb-3 justify-center">
+                <Link className="w-5 h-5 text-blue-600" />
+                <span className="text-lg font-medium text-gray-900">Job URL</span>
+              </div>
+              <input
+                type="url"
+                value={jobUrl}
+                onChange={(e) => setJobUrl(e.target.value)}
+                placeholder="https://example.com/job-posting"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              />
+            </div>
+
+            <Button
+              onClick={onStepNext}
+              disabled={!jobUrl.trim()}
+              className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 mx-auto"
+            >
+              Next Step
+              <ArrowRight size={16} />
+            </Button>
+          </motion.div>
+        )}
+
+        {currentStep === 2 && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="text-center"
+          >
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+              Upload Your Resume (Optional)
+            </h2>
+            <p className="text-gray-600 mb-8">
+              You can upload a .docx file or start with a blank editor
+            </p>
+
+            <div className="flex flex-col items-center space-y-6 mb-8">
+              {/* Upload Option */}
+              <div className="w-full max-w-md">
+                <div className="flex items-center space-x-2 mb-3 justify-center">
+                  <FileText className="w-5 h-5 text-purple-600" />
+                  <span className="text-lg font-medium text-gray-900">Upload File (Optional)</span>
+                </div>
+                <input
+                  type="file"
+                  accept=".docx"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="resume-upload"
+                />
+                <label
+                  htmlFor="resume-upload"
+                  className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
+                >
+                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-600 text-center">
+                    {uploadedFile ? uploadedFile.name : 'Click to upload .docx file (optional)'}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleContinueToEditor}
+              className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all flex items-center gap-2 mx-auto"
+            >
+              Continue to Editor
+              <ArrowRight size={16} />
+            </Button>
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
+  );
+};
+
+export function SimpleEditor({ setCredits }: SimpleEditorProps) {
   const isMobile = useIsMobile()
   const [mobileView, setMobileView] = React.useState<'main' | 'highlighter' | 'link'>('main')
   const toolbarRef = React.useRef<HTMLDivElement>(null)
@@ -188,7 +315,18 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
   const [selectedText, setSelectedText] = React.useState('')
   const [contentLoaded, setContentLoaded] = React.useState(false);
   const [showChangesPopup, setShowChangesPopup] = React.useState(false);
-  const [editorDisabled, setEditorDisabled] = React.useState(false);
+  const [editorDisabled, setEditorDisabled] = React.useState(true);
+
+  // Setup flow state
+  const [setupMode, setSetupMode] = React.useState(true);
+  const [currentStep, setCurrentStep] = React.useState<1 | 2>(1);
+  const [jobUrl, setJobUrl] = React.useState<string>("");
+  const [uploadedFile, setUploadedFile] = React.useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = React.useState<boolean>(false);
+  const [jobTitle, setJobTitle] = React.useState<string>("");
+  const [originalResume, setOriginalResume] = React.useState<string>("");
+  const [modifiedResume, setModifiedResume] = React.useState<string | null>(null);
+  const [showNoCreditsModal, setShowNoCreditsModal] = React.useState(false);
 
   const editor = useEditor({
     editorProps: {
@@ -216,14 +354,15 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
       Subscript,
       Selection,
     ],
-    content: '',
+    content: '<p>Start typing your resume content here...</p>',
     editable: !editorDisabled,
     injectCSS: true,
     autofocus: false,
     parseOptions: { preserveWhitespace: false },
 
     onCreate({ editor }) {
-      if (originalResume && modifiedResume) {
+      // Editor starts empty in setup mode
+      if (!setupMode && originalResume && modifiedResume) {
         const highlightedContent = highlightTextDiff(originalResume, modifiedResume);
         editor.commands.setContent(highlightedContent, {
           parseOptions: { preserveWhitespace: false },
@@ -231,11 +370,6 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
         setContentLoaded(true);
         setShowChangesPopup(true);
         setEditorDisabled(true);
-      } else {
-        // Fallback: just load original while waiting
-        editor.commands.setContent(originalResume, {
-          parseOptions: { preserveWhitespace: false },
-        });
       }
     },
 
@@ -243,7 +377,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
   })
 
   React.useEffect(() => {
-    if (!editor || !modifiedResume || contentLoaded) return;
+    if (!editor || !modifiedResume || contentLoaded || setupMode) return;
 
     setTimeout(() => {
       const highlighted = highlightTextDiff(originalResume, modifiedResume);
@@ -252,7 +386,164 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
       setShowChangesPopup(true);
       setEditorDisabled(true);
     }, 400);
-  }, [editor, modifiedResume, originalResume, contentLoaded]);
+  }, [editor, modifiedResume, originalResume, contentLoaded, setupMode]);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      setUploadedFile(file);
+    } else {
+      alert('Please upload a .docx file');
+    }
+  };
+
+  const handleContinueToEditor = async () => {
+    setSetupMode(false);
+    setEditorDisabled(false);
+    
+    if (uploadedFile) {
+      // If file is uploaded, convert it to HTML and load in editor
+      try {
+        const arrayBuffer = await uploadedFile.arrayBuffer();
+        const { value: originalHtml } = await mammoth.convertToHtml({ arrayBuffer });
+        setOriginalResume(originalHtml);
+        
+        if (editor) {
+          editor.commands.setContent(originalHtml, {
+            parseOptions: { preserveWhitespace: false },
+          });
+          editor.setEditable(true);
+        }
+      } catch (error) {
+        console.error('Error converting file:', error);
+        if (editor) {
+          editor.setEditable(true);
+          editor.commands.focus();
+        }
+      }
+    } else {
+      // No file uploaded, start with empty editor
+      if (editor) {
+        editor.setEditable(true);
+        editor.commands.focus();
+      }
+    }
+  };
+
+  const handleTailorResume = async () => {
+    if (!jobUrl || !editor) {
+      alert('Please provide job URL');
+      return;
+    }
+
+    // Get current HTML content from editor
+    const currentHTML = editor.getHTML();
+    console.log(currentHTML)
+    
+    if (!currentHTML || currentHTML === '<p></p>' || currentHTML.trim() === '<p>Start typing your resume content here...</p>') {
+      alert('Please add some content to your resume first');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        console.error("User not authenticated");
+        setIsProcessing(false);
+        return;
+      }
+
+      const db = getFirestore();
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        console.error("User document does not exist");
+        setIsProcessing(false);
+        return;
+      }
+
+      const userData = userSnap.data();
+      const userCredits = userData?.credits ?? 0;
+
+      if (userCredits <= 0) {
+        setShowNoCreditsModal(true);
+        setIsProcessing(false);
+        return;
+      }
+
+      // 1. Extract job title & text using Diffbot
+      const token = process.env.NEXT_PUBLIC_DIFFBOT_TOKEN!;
+      const diffbotUrl = `https://api.diffbot.com/v3/job?token=${token}&url=${encodeURIComponent(jobUrl)}`;
+
+      const diffbotResponse = await fetch(diffbotUrl);
+      if (!diffbotResponse.ok) {
+        throw new Error(`Diffbot API error: ${diffbotResponse.statusText}`);
+      }
+      const jobData = await diffbotResponse.json();
+      console.log('Extracted job data:', JSON.stringify(jobData, null, 2));
+
+      const jobObj = jobData.objects?.[0];
+      const title = jobObj?.title || 'Untitled Job';
+      const text = jobObj?.text || '';
+      const combinedJobContent = `${title}\n\n${text}`;
+
+      // Set job title and original resume from current editor content
+      setJobTitle(title);
+      setOriginalResume(currentHTML);
+
+      // Disable editor during processing
+      editor.setEditable(false);
+      setEditorDisabled(true);
+
+      // 3. Send current resume content + job data to backend for tailoring
+      const idToken = await user.getIdToken();
+
+      await updateDoc(userRef, {
+        credits: increment(-1),
+        tailorCalls: increment(1)
+      });
+      setCredits((prevCredits: number) => prevCredits - 1);
+
+      const tailoredResumePromise = fetch('https://backend-late-snow-4268.fly.dev/tailor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          jobContent: combinedJobContent,
+          resumeContent: currentHTML, // Use current HTML from editor
+        }),
+      })
+        .then(res => {
+          if (!res.ok) throw new Error(`Backend error: ${res.statusText}`);
+          return res.json();
+        })
+        .then(data => {
+          const tailored = data.tailoredResume || currentHTML;
+          setModifiedResume(tailored);
+          return tailored;
+        })
+        .catch(error => {
+          console.error("Failed to get tailored resume:", error);
+          setModifiedResume(currentHTML);
+          return currentHTML;
+        });
+
+      await tailoredResumePromise;
+
+    } catch (error) {
+      console.error('Error during tailoring resume:', error);
+      alert('An error occurred while tailoring your resume.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Function to apply changes by removing 'highlight' class from all nodes
   const applyChanges = React.useCallback(() => {
@@ -523,7 +814,36 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
   )
 
   return (
-    <div className="simple-editor-wrapper mt-10 md:mt-25">
+    <div className="simple-editor-wrapper mt-25 md:mt-25">
+      {/* Setup Container Overlay */}
+      {setupMode && (
+        <SetupContainer
+          currentStep={currentStep}
+          jobUrl={jobUrl}
+          setJobUrl={setJobUrl}
+          uploadedFile={uploadedFile}
+          handleFileUpload={handleFileUpload}
+          handleContinueToEditor={handleContinueToEditor}
+          onStepNext={() => setCurrentStep(2)}
+        />
+      )}
+
+      {/* No Credits Modal */}
+      {showNoCreditsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl max-w-sm text-center">
+            <h2 className="text-xl font-semibold mb-2">No Credits Left</h2>
+            <p className="mb-4">You've run out of resume tailoring credits.</p>
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              onClick={() => setShowNoCreditsModal(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Changes Popup */}
       <AnimatePresence>
         <ChangesPopup
@@ -533,8 +853,9 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
         />
       </AnimatePresence>
 
-      {jobTitle && !contentLoaded && (
-        <div className="relative md:fixed md:top-30 md:right-4 mt-15 md:mt-0 mb-4 p-4 rounded-xl bg-green-50 border border-green-300 text-green-800 text-base font-medium overflow-hidden transition-all duration-500 max-w-md mx-auto md:mx-0">
+      {/* Job Title Loading Indicator */}
+      {jobTitle && !contentLoaded && !setupMode && (
+        <div className="relative md:fixed md:top-30 md:right-4 mt-0 md:mt-0 mb-4 p-4 rounded-xl bg-green-50 border border-green-300 text-green-800 text-base font-medium overflow-hidden transition-all duration-500 max-w-md mx-auto md:mx-0">
           <div className="flex items-center justify-between">
             <span>
               Tailoring resume to: <span className="font-semibold">{jobTitle}</span>
@@ -550,6 +871,29 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
         </div>
       )}
 
+      {/* "Tailor My Resume" Button for editor mode */}
+      {!setupMode && !showChangesPopup && jobUrl && !jobTitle && !contentLoaded && (
+        <div className="relative sm:fixed sm:top-30 sm:right-10 mb-4 sm:mb-0 mx-auto sm:mx-0 z-2">
+          <button
+            onClick={handleTailorResume}
+            disabled={editorDisabled || isProcessing}
+            className="whitespace-nowrap px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95 shadow-lg"
+          >
+            {isProcessing ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Processing...</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-5 h-5" />
+                <span>Tailor My Resume</span>
+              </div>
+            )}
+          </button>
+        </div>
+      )}
+
       {editor && (
         <EditorContext.Provider value={{ editor }}>
           <Toolbar
@@ -560,8 +904,8 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
               right: 0,
               zIndex: 5,
               top: 64,
-              opacity: 1,
-              pointerEvents: editorDisabled ? 'none' : 'auto',
+              opacity: setupMode ? 0.3 : 1,
+              pointerEvents: (editorDisabled || setupMode) ? 'none' : 'auto',
             }}
           >
             {mobileView === 'main' ? (
@@ -576,7 +920,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
           </Toolbar>
 
           {/* Selection Toolbar */}
-          {selectionRect && selectedText && !editorDisabled && (
+          {selectionRect && selectedText && !editorDisabled && !setupMode && (
             <SelectionToolbar rect={selectionRect} selectedText={selectedText} onAction={onSelectionAction} />
           )}
 
@@ -593,7 +937,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
                 <EditorContent
                   editor={editor}
                   role="presentation"
-                  className={`simple-editor-content ${editorDisabled ? 'pointer-events-none opacity-75' : ''}`}
+                  className={`simple-editor-content ${(editorDisabled || setupMode) ? 'pointer-events-none opacity-75' : ''}`}
                 />
               </motion.div>
             )}
@@ -610,7 +954,7 @@ export function SimpleEditor({ originalResume, modifiedResume, jobTitle }: Simpl
                 <EditorContent
                   editor={editor}
                   role="presentation"
-                  className={`simple-editor-content ${editorDisabled ? 'pointer-events-none' : ''}`}
+                  className={`simple-editor-content ${(editorDisabled || setupMode) ? 'pointer-events-none' : ''}`}
                 />
               </motion.div>
             )}

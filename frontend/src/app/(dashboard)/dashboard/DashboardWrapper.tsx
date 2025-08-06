@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Dashboard from './Dashboard';
 import DashboardNavbar from '@/app/components/DashNavbar';
 import Feedback from '@/app/components/Feedback';
-import { AnimatePresence, motion } from 'framer-motion';
 import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
 import { auth } from "@/lib/firebase";
 import {
@@ -17,18 +15,11 @@ import {
 } from 'firebase/firestore';
 
 export default function DashboardWrapper() {
-  const [originalResume, setOriginalResume] = useState<string | null>(null);
-  const [modifiedResume, setModifiedResume] = useState<string | null>(null);
-  const [jobTitle, setJobTitle] = useState<string | null>(null);
-  const [showEditor, setShowEditor] = useState(false);
   const [credits, setCredits] = useState<number>(0);
-  const [showSidebar, setShowSidebar] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
-
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
-
       if (currentUser) {
         try {
           const db = getFirestore();
@@ -77,74 +68,28 @@ export default function DashboardWrapper() {
     return () => unsubscribe();
   }, []);
 
-  const handleResumeReady = (original: string, modifiedPromise: Promise<string>) => {
-    setOriginalResume(original);
-    setShowEditor(true);
-    setShowSidebar(true);
-
-    modifiedPromise.then(modified => {
-      setModifiedResume(modified);
-    });
-  };
-
   const handleNewResume = () => {
-    setShowEditor(false);
-    setOriginalResume(null);
-    setModifiedResume(null);
-    setJobTitle(null);
-    setShowSidebar(false);
+    // Refresh the page to restart the setup flow
+    window.location.reload();
   };
 
   return (
     <div className="relative h-screen w-full">
       <DashboardNavbar
         credits={credits}
-        showSidebar={showSidebar}
+        showSidebar={true} // Always show sidebar since we're always in editor mode now
         onNewResume={handleNewResume}
         onSendFeedback={() => {
           setShowFeedback(true);
         }}
       />
 
-      <AnimatePresence mode="wait">
-        {!showEditor && (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 flex items-start justify-center"
-          >
-            <div className="w-full max-w-[1000px] px-4">
-              <Dashboard
-                setResumeContent={handleResumeReady}
-                setJobTitle={setJobTitle}
-                setCredits={setCredits}
-                credits={credits}
-              />
-            </div>
-          </motion.div>
-        )}
-
-        {showEditor && originalResume && (
-          <motion.div
-            key="editor"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="absolute inset-0 p-5"
-          >
-            <div className="mt-10">
-              <SimpleEditor
-                originalResume={originalResume}
-                modifiedResume={modifiedResume}
-                jobTitle={jobTitle}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Always show the editor with setup flow */}
+      <div className="absolute inset-0 p-5">
+        <div className="mt-10">
+          <SimpleEditor setCredits={setCredits} />
+        </div>
+      </div>
 
       {showFeedback && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

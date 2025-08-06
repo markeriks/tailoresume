@@ -122,6 +122,8 @@ export default function TailoResumeDashboard({ setResumeContent, setJobTitle, se
       });
       setCredits((prevCredits: number) => prevCredits - 1);
 
+      console.log(originalHtml)
+
       const tailoredResumePromise = fetch('https://backend-late-snow-4268.fly.dev/tailor', {
         method: 'POST',
         headers: {
@@ -145,6 +147,9 @@ export default function TailoResumeDashboard({ setResumeContent, setJobTitle, se
 
       // Immediately show editor with original, modified loads when ready
       setResumeContent(originalHtml, tailoredResumePromise);
+      tailoredResumePromise.then((tailored) => {
+        console.log("Tailored Resume:", tailored);
+      });
     } catch (error) {
       console.error('Error during tailoring resume:', error);
       alert('An error occurred while tailoring your resume.');

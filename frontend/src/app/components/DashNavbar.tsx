@@ -9,6 +9,7 @@ import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import logo from '@/app/assets/logo.png';
 import profile from '@/app/assets/profile.jpg';
+import { motion, AnimatePresence } from "framer-motion";
 
 
 interface DashboardNavbarProps {
@@ -25,13 +26,19 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
   const profileRef = useRef<HTMLButtonElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
 
   // Fetch current user
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(setUser);
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (showConfirmPopup) {
+      setMobileSidebarOpen(false);
+    }
+  }, [showConfirmPopup]);
 
   // Handle outside click to close dropdown
   useEffect(() => {
@@ -62,7 +69,7 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
   function SidebarContent() {
     return (
       <>
-        <button onClick={onNewResume} className="w-full flex items-center gap-2 text-left text-gray-800 font-bold px-2 py-3 hover:bg-gray-100 hover:rounded-lg">
+        <button onClick={() => setShowConfirmPopup(true)} className="w-full flex items-center gap-2 text-left text-gray-800 font-bold px-2 py-3 hover:bg-gray-100 hover:rounded-lg">
           <Sparkles className="w-4 h-4 text-yellow-500" />
           Tailor new resume
         </button>
@@ -76,6 +83,52 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
 
   return (
     <>
+      <AnimatePresence>
+        {showConfirmPopup && (
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          >
+            <motion.div
+              key="modal"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.25 }}
+              className="bg-white rounded-xl shadow-xl p-6 w-[90%] max-w-md mx-auto"
+            >
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">
+                Are you sure?
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Your current resume will be deleted.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowConfirmPopup(false)}
+                  className="px-4 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    onNewResume!();
+                    setShowConfirmPopup(false);
+                  }}
+                  className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+
       {/* Top Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
         <div className=" mx-auto px-4">
@@ -185,27 +238,46 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
           </aside>
 
           {/* Mobile Sidebar (only visible when toggled open) */}
-          {mobileSidebarOpen && (
-            <div className="sm:hidden fixed inset-0 z-6 flex">
-              {/* Overlay */}
-              <div
-                className="fixed inset-0 bg-black/50"
-                onClick={() => setMobileSidebarOpen(false)}
-              />
+          <AnimatePresence>
+            {mobileSidebarOpen && (
+              <motion.div
+                key="mobile-sidebar"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="sm:hidden fixed inset-0 z-50 flex"
+              >
+                {/* Overlay */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed inset-0 bg-black/50"
+                  onClick={() => setMobileSidebarOpen(false)}
+                />
 
-              {/* Sidebar panel */}
-              <div className="mr-auto w-72 bg-white h-full shadow-lg p-6 flex flex-col gap-6 z-100">
-                {/* Logo */}
-                <div className="flex items-center gap-2 mb-6 mt-16">
-                  <div className="w-8 h-8 relative">
-                    <Image src={logo} alt="TailoResume Logo" fill className="object-contain" />
+                {/* Sidebar panel */}
+                <motion.div
+                  initial={{ x: -300 }}
+                  animate={{ x: 0 }}
+                  exit={{ x: -300 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  className="mr-auto w-72 bg-white h-full shadow-lg p-6 flex flex-col gap-6 z-100"
+                >
+                  {/* Logo */}
+                  <div className="flex items-center gap-2 mb-6 mt-16">
+                    <div className="w-8 h-8 relative">
+                      <Image src={logo} alt="TailoResume Logo" fill className="object-contain" />
+                    </div>
+                    <span className="text-xl font-bold text-gray-900">TailoResume</span>
                   </div>
-                  <span className="text-xl font-bold text-gray-900">TailoResume</span>
-                </div>
-                <SidebarContent />
-              </div>
-            </div>
-          )}
+                  <SidebarContent />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
         </>
       )}
     </>
