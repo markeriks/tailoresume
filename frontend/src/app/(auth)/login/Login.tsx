@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signInWithPopup, sendEmailVerification } from "firebase/auth";
-import { doc, getDoc, getFirestore } from "firebase/firestore";
+import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, googleProvider } from "@/lib/firebase";
 import Logo from "@/app/components/ui/Logo";
 import Image from 'next/image';
@@ -22,10 +22,10 @@ export default function Signin() {
 
   const resendVerificationEmail = async () => {
     if (!auth.currentUser) return;
-    
+
     setResendingEmail(true);
     setError(null);
-    
+
     try {
       await sendEmailVerification(auth.currentUser, {
         url: `${window.location.origin}/login`,
@@ -44,11 +44,11 @@ export default function Signin() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isAccountCreatedToday = (createdAt: any): boolean => {
     if (!createdAt) return false;
-    
+
     // Handle Firestore Timestamp
     const createdDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
     const today = new Date();
-    
+
     return (
       createdDate.getDate() === today.getDate() &&
       createdDate.getMonth() === today.getMonth() &&
@@ -78,10 +78,10 @@ export default function Signin() {
       // Get user document from Firestore to check creation date and verification status
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
-      
+
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        
+
         // Double-check emailVerified status in Firestore (in case it's out of sync)
         if (userData.emailVerified === false) {
           setNeedsVerification(true);
@@ -133,21 +133,35 @@ export default function Signin() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      // Get user document from Firestore to check creation date
+      if (!user.email) {
+        throw new Error("Google account has no email.");
+      }
+
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
-      
+
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        
-        // Check if account was created today
+
         if (isAccountCreatedToday(userData.createdAt)) {
           router.push("/plans");
         } else {
           router.push("/dashboard");
         }
       } else {
-        // User document doesn't exist, redirect to plans (new account flow)
+        // Create new user document
+        await setDoc(userDocRef, {
+          fullName: user.displayName || '',
+          email: user.email,
+          plan: null,
+          credits: 2,
+          tailorCalls: 0,
+          selectCalls: 0,
+          createdAt: serverTimestamp(),
+          lastCreditRefill: serverTimestamp(),
+          emailVerified: user.emailVerified,
+        });
+
         router.push("/plans");
       }
 
@@ -161,6 +175,7 @@ export default function Signin() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
