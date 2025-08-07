@@ -42,32 +42,27 @@ export default function PricingComponent() {
 
   const features = {
     free: [
-      '1 tailored resume per month',
+      '2 tailored resumes per month',
       'Basic ATS keyword optimization',
-      'Upload and edit your resume',
-      'Download in PDF format',
-      'Limited access to customization suggestions',
-      'Email support'
+      'Upload and edit your resume'
     ],
     standard: [
       'Everything in Free +',
-      'Up to 10 tailored resumes per month',
+      'Up to 20 tailored resumes per month',
       'Full ATS optimization and keyword matching',
-      'Enhanced customization (tone, phrasing, format)',
-      'Export in PDF & Word format',
-      'Priority email support'
+      'Export in PDF format',
+      'Dedicated email support'
     ],
     pro: [
       'Everything in Standard +',
-      'Unlimited tailored resumes',
-      'Smart tone adaptation (e.g., formal, confident, energetic)',
-      'AI-enhanced resume feedback',
-      'Save and manage unlimited resumes/job links',
-      'PDF + Word format',
-      'Premium support (chat + email)',
+      '300 tailored resumes per month',
+      'Enhanced resume personalization',
+      'Export in PDF format',
+      'Priority email support',
       'Early access to new features'
     ]
   };
+
 
   const currentPricing = plans[billingPeriod];
 
@@ -89,21 +84,19 @@ export default function PricingComponent() {
           <div className="bg-gray-100 p-1 rounded-lg flex relative">
             <button
               onClick={() => setBillingPeriod('monthly')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
-                billingPeriod === 'monthly'
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${billingPeriod === 'monthly'
                   ? 'bg-white text-orange-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setBillingPeriod('quarterly')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
-                billingPeriod === 'quarterly'
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${billingPeriod === 'quarterly'
                   ? 'bg-white text-orange-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
             >
               Quarterly
             </button>

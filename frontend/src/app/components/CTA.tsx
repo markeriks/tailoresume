@@ -30,7 +30,7 @@ const CTA = () => {
           </h2>
 
           <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Join thousands of successful job seekers who've increased their interview rates with perfectly tailored resumes. Start your journey today.
+            Join hundreds of successful job seekers who've increased their interview rates with perfectly tailored resumes. Start your journey today.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
@@ -64,8 +64,31 @@ const CTA = () => {
             </Link>
           </div>
 
-          {/* Extra whitespace */}
-          <div className="pt-16">
+          {/* Contact section with email */}
+          <div className="pt-8 border-t border-gray-200">
+            <p className="text-gray-600 mb-2">Questions? We're here to help!</p>
+            <a 
+              href="mailto:hello@tailoresume.com" 
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              <svg 
+                className="w-4 h-4" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                viewBox="0 0 24 24"
+              >
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              info@tailoresume.com
+            </a>
+          </div>
+
+          {/* Footer */}
+          <div className="pt-8">
             <p className="text-center text-sm text-gray-700">
               &copy; {new Date().getFullYear()} TailoResume. All rights reserved.
             </p>

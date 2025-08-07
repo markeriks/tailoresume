@@ -44,7 +44,7 @@ export default function DashboardWrapper() {
               if (!plan) {
                 creditsToAdd = 2;
               } else if (plan === "Standard Plan") {
-                creditsToAdd = 10;
+                creditsToAdd = 20;
               } else if (plan === "Pro Plan") {
                 creditsToAdd = 300;
               }

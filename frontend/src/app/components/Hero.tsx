@@ -27,7 +27,7 @@ const Hero = () => {
             {/* Heading */}
             <h1 className="text-3xl md:text-5xl font-bold text-gray-900 leading-tight">
               Tailor Your Resume to<br />
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Any Job</span>
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Any Job </span>
               <br />
               in Minutes
             </h1>
@@ -44,7 +44,7 @@ const Hero = () => {
             <Link href="/signup">
               <button
                 type="button"
-                className="relative z-50 flex items-center gap-2 justify-center px-8 py-4 text-lg font-semibold rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition"
+                className="relative z-40 flex items-center gap-2 justify-center px-8 py-4 text-lg font-semibold rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition"
               >Start tailoring now
               </button>
             </Link>
@@ -67,7 +67,7 @@ const Hero = () => {
               <div className="text-sm text-gray-500">Interview Rate</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">&lt; 3 min</div>
+              <div className="text-2xl font-bold text-gray-900">&lt; 1 min</div>
               <div className="text-sm text-gray-500">Processing Time</div>
             </div>
           </div>
