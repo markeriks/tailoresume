@@ -182,7 +182,7 @@ export default function Signup() {
   // Show verification sent message
   if (verificationSent) {
     return (
-      <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 mt-30">
+      <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 mt-15">
         <div className="absolute top-6 left-6">
           <Logo />
         </div>

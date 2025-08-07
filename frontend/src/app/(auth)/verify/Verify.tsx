@@ -93,7 +93,7 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 mt-15">
       {/* Custom Logo Top Left */}
       <div className="absolute top-6 left-6">
         <Logo />

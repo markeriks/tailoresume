@@ -3,29 +3,119 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, sendEmailVerification } from "firebase/auth";
+import { doc, getDoc, getFirestore } from "firebase/firestore";
 import { auth, googleProvider } from "@/lib/firebase";
 import Logo from "@/app/components/ui/Logo";
 import Image from 'next/image';
 
+const db = getFirestore();
 
 export default function Signin() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [needsVerification, setNeedsVerification] = useState<boolean>(false);
+  const [resendingEmail, setResendingEmail] = useState<boolean>(false);
   const router = useRouter();
+
+  const resendVerificationEmail = async () => {
+    if (!auth.currentUser) return;
+    
+    setResendingEmail(true);
+    setError(null);
+    
+    try {
+      await sendEmailVerification(auth.currentUser, {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: false,
+      });
+      setError("Verification email sent! Please check your inbox.");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError("Failed to send verification email. Please try again.");
+      }
+    } finally {
+      setResendingEmail(false);
+    }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isAccountCreatedToday = (createdAt: any): boolean => {
+    if (!createdAt) return false;
+    
+    // Handle Firestore Timestamp
+    const createdDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    const today = new Date();
+    
+    return (
+      createdDate.getDate() === today.getDate() &&
+      createdDate.getMonth() === today.getMonth() &&
+      createdDate.getFullYear() === today.getFullYear()
+    );
+  };
 
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    setNeedsVerification(false);
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check if email is verified
+      if (!user.emailVerified) {
+        setNeedsVerification(true);
+        setError("Please verify your email address before signing in. Check your inbox for a verification link.");
+        await auth.signOut(); // Sign out the unverified user
+        setLoading(false);
+        return;
+      }
+
+      // Get user document from Firestore to check creation date and verification status
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        
+        // Double-check emailVerified status in Firestore (in case it's out of sync)
+        if (userData.emailVerified === false) {
+          setNeedsVerification(true);
+          setError("Please verify your email address before signing in. Check your inbox for a verification link.");
+          await auth.signOut();
+          setLoading(false);
+          return;
+        }
+
+        // Check if account was created today
+        if (isAccountCreatedToday(userData.createdAt)) {
+          router.push("/plans");
+        } else {
+          router.push("/dashboard");
+        }
+      } else {
+        // User document doesn't exist, redirect to plans (new account flow)
+        router.push("/plans");
+      }
+
     } catch (error: unknown) {
       if (error instanceof Error) {
-        setError(error.message);
+        // Handle specific Firebase auth errors
+        if (error.message.includes('user-not-found')) {
+          setError('No account found with this email address.');
+        } else if (error.message.includes('wrong-password')) {
+          setError('Incorrect password. Please try again.');
+        } else if (error.message.includes('invalid-email')) {
+          setError('Please enter a valid email address.');
+        } else if (error.message.includes('too-many-requests')) {
+          setError('Too many failed attempts. Please try again later.');
+        } else {
+          setError(error.message);
+        }
       } else {
         setError("Failed to sign in");
       }
@@ -37,9 +127,30 @@ export default function Signin() {
   const handleGoogleLogin = async () => {
     setError(null);
     setLoading(true);
+    setNeedsVerification(false);
+
     try {
-      await signInWithPopup(auth, googleProvider);
-      router.push("/dashboard");
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Get user document from Firestore to check creation date
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        
+        // Check if account was created today
+        if (isAccountCreatedToday(userData.createdAt)) {
+          router.push("/plans");
+        } else {
+          router.push("/dashboard");
+        }
+      } else {
+        // User document doesn't exist, redirect to plans (new account flow)
+        router.push("/plans");
+      }
+
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -50,7 +161,6 @@ export default function Signin() {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
@@ -103,13 +213,29 @@ export default function Signin() {
             </div>
           </div>
 
-          {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+          {error && (
+            <div className="text-sm">
+              <p className={`font-medium ${error.includes('Verification email sent') ? 'text-green-600' : 'text-red-500'}`}>
+                {error}
+              </p>
+              {needsVerification && (
+                <button
+                  type="button"
+                  onClick={resendVerificationEmail}
+                  disabled={resendingEmail}
+                  className="mt-2 text-indigo-600 hover:text-indigo-500 font-medium"
+                >
+                  {resendingEmail ? 'Sending...' : 'Resend verification email'}
+                </button>
+              )}
+            </div>
+          )}
 
           <div>
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 cursor-pointer"
+              className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 cursor-pointer disabled:opacity-50"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
@@ -126,13 +252,13 @@ export default function Signin() {
           </div>
         </div>
 
-        {/* Google Sign Up */}
+        {/* Google Sign In */}
         <div className="mt-6">
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="flex w-full justify-center items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 cursor-pointer"
+            className="flex w-full justify-center items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 cursor-pointer disabled:opacity-50"
           >
             <Image
               src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -146,7 +272,7 @@ export default function Signin() {
         </div>
 
         <p className="mt-10 text-center text-sm text-gray-500">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <Link href="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500">
             Sign up
           </Link>
