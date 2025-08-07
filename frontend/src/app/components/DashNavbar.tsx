@@ -36,14 +36,14 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       setUser(currentUser);
-      
+
       if (currentUser) {
         try {
           setIsLoadingPlan(true);
           const db = getFirestore();
           const userDocRef = doc(db, 'users', currentUser.uid);
           const userDoc = await getDoc(userDocRef);
-          
+
           if (userDoc.exists()) {
             const userData = userDoc.data();
             setUserPlan(userData.plan || null);
@@ -61,7 +61,7 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
         setIsLoadingPlan(false);
       }
     });
-    
+
     return () => unsubscribe();
   }, []);
 
@@ -100,36 +100,44 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
   // Handle Stripe customer portal
   const handleCustomerPortal = async () => {
     if (!user || !userPlan) return;
-    
+
     setIsLoadingPortal(true);
+
     try {
-      // Get the Firebase ID token
-      const idToken = await user.getIdToken();
-      
-      // Call your API endpoint to create the customer portal session
-      const response = await fetch('/api/stripe/customer-portal', {
+      // Get the current user's email from Firebase
+      const email = user.email;
+
+      if (!email) {
+        throw new Error('User email not found');
+      }
+
+      // Call your customer-portal route with the email
+      const portalResponse = await fetch('/api/customer-portal', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
       });
 
-      if (!response.ok) {
+      if (!portalResponse.ok) {
         throw new Error('Failed to create customer portal session');
       }
 
-      const { url } = await response.json();
-      
-      // Redirect to Stripe customer portal
+      const { url } = await portalResponse.json();
+
+      // Redirect to the Stripe customer portal
       window.location.href = url;
+
     } catch (error) {
       console.error('Error opening customer portal:', error);
-      // You might want to show a toast notification here
+      // Optionally show a toast or notification here
     } finally {
       setIsLoadingPortal(false);
     }
   };
+
+
 
   const hasActiveSubscription = userPlan !== null;
 
@@ -278,19 +286,18 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
                     <button
                       onClick={handleCustomerPortal}
                       disabled={isLoadingPortal || !hasActiveSubscription || isLoadingPlan}
-                      className={`flex items-center gap-2 w-full text-left px-4 py-2 ${
-                        hasActiveSubscription && !isLoadingPlan
-                          ? 'hover:bg-gray-100 text-gray-700 cursor-pointer'
-                          : 'text-gray-400 cursor-not-allowed opacity-50'
-                      }`}
+                      className={`flex items-center gap-2 w-full text-left px-4 py-2 ${hasActiveSubscription && !isLoadingPlan
+                        ? 'hover:bg-gray-100 text-gray-700 cursor-pointer'
+                        : 'text-gray-400 cursor-not-allowed opacity-50'
+                        }`}
                       title={!hasActiveSubscription ? 'Subscribe to a plan to access billing portal' : ''}
                     >
                       <CreditCard className="w-4 h-4" />
-                      {isLoadingPlan 
-                        ? 'Loading...' 
-                        : isLoadingPortal 
-                        ? 'Loading...' 
-                        : 'Billing Portal'
+                      {isLoadingPlan
+                        ? 'Loading...'
+                        : isLoadingPortal
+                          ? 'Loading...'
+                          : 'Billing Portal'
                       }
                     </button>
 

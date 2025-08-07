@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
+import { getAuth } from 'firebase/auth';
 
 type PricingComponentProps = {
   title?: string;
@@ -81,21 +82,47 @@ export default function PricingComponent({ title }: PricingComponentProps) {
   const currentPricing = plans[billingPeriod];
 
   const handleSubscribe = async (plan: 'standard' | 'pro') => {
-    const priceId = priceIdMap[plan][billingPeriod];
+    const auth = getAuth();
+    const user = auth.currentUser;
 
-    const res = await fetch('/api/create-checkout-session', {
-      method: 'POST',
-      body: JSON.stringify({ priceId }),
-    });
+    if (!user) {
+      alert("You need to be logged in to subscribe.");
+      return;
+    }
 
-    const data = await res.json();
+    try {
+      const email = user.email;
 
-    if (data?.url) {
-      window.location.href = data.url;
-    } else {
-      alert('Error starting checkout');
+      if (!email) {
+        alert("Unable to retrieve user email.");
+        return;
+      }
+
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          priceId: priceIdMap[plan][billingPeriod],
+          email,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Error starting checkout');
+      }
+    } catch (err) {
+      console.error("Subscription error:", err);
+      alert("Something went wrong. Please try again.");
     }
   };
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-20 px-4">

@@ -46,7 +46,7 @@ export default function SuccessPage() {
                     await updateDoc(userRef, {
                         credits: increment(creditsToAdd),
                         lastCreditRefill: serverTimestamp(),
-                        planName: productName,
+                        plan: productName,
                     });
                     setUserVerified(true);
                 }
