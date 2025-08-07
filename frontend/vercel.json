@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/__/auth/handler",
+      "destination": "https://invoice-chaser-509dd.firebaseapp.com/__/auth/handler"
+    }
+  ]
+}
