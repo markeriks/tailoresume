@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.routes.transform import router as transform_router
 from app.routes.tailor import router as tailor_router
+from app.routes.verify import router as verify_router
 from app.rate_limit import limiter
 
 import os
@@ -42,6 +43,7 @@ app.add_middleware(
 
 # Routes
 app.include_router(transform_router)
+app.include_router(tailor_router)
 app.include_router(tailor_router)
 
 

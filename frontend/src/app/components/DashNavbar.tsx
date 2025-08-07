@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronDown, Zap, Menu, Sparkles, MessageSquare } from 'lucide-react';
+import { ChevronDown, Zap, Menu, Sparkles, MessageSquare, CreditCard } from 'lucide-react';
 import { signOut, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import logo from '@/app/assets/logo.png';
 import profile from '@/app/assets/profile.jpg';
@@ -27,10 +28,40 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
   const modalRef = useRef<HTMLDivElement | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [isLoadingPortal, setIsLoadingPortal] = useState(false);
+  const [userPlan, setUserPlan] = useState<string | null>(null);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(true);
 
-  // Fetch current user
+  // Fetch current user and user plan
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(setUser);
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+      setUser(currentUser);
+      
+      if (currentUser) {
+        try {
+          setIsLoadingPlan(true);
+          const db = getFirestore();
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserPlan(userData.plan || null);
+          } else {
+            setUserPlan(null);
+          }
+        } catch (error) {
+          console.error('Error fetching user plan:', error);
+          setUserPlan(null);
+        } finally {
+          setIsLoadingPlan(false);
+        }
+      } else {
+        setUserPlan(null);
+        setIsLoadingPlan(false);
+      }
+    });
+    
     return () => unsubscribe();
   }, []);
 
@@ -65,6 +96,42 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
     : 'User';
 
   const displayPhoto = user && isGoogleUser() && user.photoURL ? user.photoURL : profile;
+
+  // Handle Stripe customer portal
+  const handleCustomerPortal = async () => {
+    if (!user || !userPlan) return;
+    
+    setIsLoadingPortal(true);
+    try {
+      // Get the Firebase ID token
+      const idToken = await user.getIdToken();
+      
+      // Call your API endpoint to create the customer portal session
+      const response = await fetch('/api/stripe/customer-portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create customer portal session');
+      }
+
+      const { url } = await response.json();
+      
+      // Redirect to Stripe customer portal
+      window.location.href = url;
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      // You might want to show a toast notification here
+    } finally {
+      setIsLoadingPortal(false);
+    }
+  };
+
+  const hasActiveSubscription = userPlan !== null;
 
   function SidebarContent() {
     return (
@@ -209,6 +276,25 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
                     </div>
 
                     <button
+                      onClick={handleCustomerPortal}
+                      disabled={isLoadingPortal || !hasActiveSubscription || isLoadingPlan}
+                      className={`flex items-center gap-2 w-full text-left px-4 py-2 ${
+                        hasActiveSubscription && !isLoadingPlan
+                          ? 'hover:bg-gray-100 text-gray-700 cursor-pointer'
+                          : 'text-gray-400 cursor-not-allowed opacity-50'
+                      }`}
+                      title={!hasActiveSubscription ? 'Subscribe to a plan to access billing portal' : ''}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      {isLoadingPlan 
+                        ? 'Loading...' 
+                        : isLoadingPortal 
+                        ? 'Loading...' 
+                        : 'Billing Portal'
+                      }
+                    </button>
+
+                    <button
                       onClick={() => {
                         signOut(auth)
                           .then(() => {
@@ -283,4 +369,3 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
     </>
   );
 }
-
