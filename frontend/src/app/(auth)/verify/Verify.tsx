@@ -37,15 +37,7 @@ export default function VerifyEmail() {
 
         // Update the user's emailVerified status in Firestore
         if (info.data.email) {
-          // We need to find the user by email since we might not have their UID
-          // You might want to store the UID in the verification URL instead
-          // For now, we'll use the email to find the user document
           
-          // Alternative approach: If you have access to the user's UID, use it directly
-          // const userRef = doc(db, 'users', userId);
-          // await updateDoc(userRef, { emailVerified: true });
-
-          // Since we need to find user by email, we'll need to query
           const { collection, query, where, getDocs, updateDoc: firestoreUpdateDoc } = await import('firebase/firestore');
           
           const usersRef = collection(db, 'users');
