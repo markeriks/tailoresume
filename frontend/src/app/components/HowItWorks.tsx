@@ -41,7 +41,7 @@ const HowItWorks = () => {
       step: "02",
       title: "Upload Resume",
       description:
-        "Upload your existing resume in PDF, Word, or text format. Our AI will analyze your experience and skills.",
+        "Upload your existing resume in Docx format, or paste directly in the editor. Our AI will analyze your experience and skills.",
     },
     {
       icon: (
