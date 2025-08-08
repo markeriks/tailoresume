@@ -24,15 +24,15 @@ const Hero = () => {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-white to-gray-100 overflow-hidden px-4 pt-24 pb-16">
+    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-white to-gray-100 overflow-hidden px-4 lg:px-8 xl:px-16 2xl:px-24 pt-24 pb-16">
 
       {/* Background decorative gradients */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#3b82f6_0%,transparent_50%)] opacity-5"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,#8b5cf6_0%,transparent_50%)] opacity-5"></div>
 
-      <div className="container max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+      <div className="w-full max-w-[1600px] mx-auto grid lg:grid-cols-2 gap-12 xl:gap-16 2xl:gap-24 items-center">
         {/* Left content */}
-        <div className="space-y-8 animate-in slide-in-from-left duration-1000">
+        <div className="space-y-8 animate-in slide-in-from-left duration-1000 lg:pl-4 xl:pl-8">
           <div className="space-y-4">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-medium">
@@ -43,15 +43,15 @@ const Hero = () => {
             </div>
 
             {/* Heading */}
-            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 leading-tight">
-              Tailor Your Resume to<br />
+            <h1 className="text-3xl md:text-5xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-gray-900 leading-tight">
+              <span className="whitespace-nowrap">Tailor Your Resume to</span><br />
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Any Job </span>
               <br />
               in Minutes
             </h1>
 
             {/* Description */}
-            <p className="text-lg text-gray-600 leading-relaxed max-w-xl">
+            <p className="text-lg xl:text-xl text-gray-600 leading-relaxed max-w-2xl">
               Simply paste any job posting link and let our AI instantly customize your resume to match the requirements.
               Stand out from the crowd and catch recruiters' attention.
             </p>
@@ -62,37 +62,37 @@ const Hero = () => {
             <Link href="/signup">
               <button
                 type="button"
-                className="relative z-40 flex items-center gap-2 justify-center px-8 py-4 text-lg font-semibold rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition"
+                className="relative z-40 flex items-center gap-2 justify-center px-8 py-4 xl:px-10 xl:py-5 text-lg xl:text-xl font-semibold rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition"
               >Start tailoring now
               </button>
             </Link>
 
-            <div className="flex items-center gap-2 px-4 py-4 text-gray-600 font-bold justify-start sm:justify-center">
-              <Image src={rejected} alt="No credit card" width={40} height={40} />
-              No credit card required
+            <div className="flex items-center gap-2 px-4 py-4 xl:px-6 xl:py-5 text-gray-600 font-bold justify-start sm:justify-center">
+              <Image src={rejected} alt="No credit card" width={40} height={40} className="xl:w-12 xl:h-12" />
+              <span className="xl:text-lg">No credit card required</span>
             </div>
           </div>
 
           {/* Trust indicators */}
-          <div className="flex items-center gap-6 pt-4">
+          <div className="flex items-center gap-6 xl:gap-8 pt-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">500+</div>
-              <div className="text-sm text-gray-500">Resumes Tailored</div>
+              <div className="text-2xl xl:text-3xl font-bold text-gray-900">500+</div>
+              <div className="text-sm xl:text-base text-gray-500">Resumes Tailored</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">2x</div>
-              <div className="text-sm text-gray-500">Interview Rate</div>
+              <div className="text-2xl xl:text-3xl font-bold text-gray-900">2x</div>
+              <div className="text-sm xl:text-base text-gray-500">Interview Rate</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">&lt; 1 min</div>
-              <div className="text-sm text-gray-500">Processing Time</div>
+              <div className="text-2xl xl:text-3xl font-bold text-gray-900">&lt; 1 min</div>
+              <div className="text-sm xl:text-base text-gray-500">Processing Time</div>
             </div>
           </div>
         </div>
 
         {/* Right content - Hero video with image fallback */}
-        <div className="relative animate-in slide-in-from-right duration-1000 delay-300">
-          <div className="relative z-10 max-w-[90%] mx-auto">
+        <div className="relative animate-in slide-in-from-right duration-1000 delay-300 lg:pr-4 xl:pr-8">
+          <div className="relative z-10 max-w-full mx-auto">
             {videoError ? (
               // Fallback to original image if video fails
               <Image
