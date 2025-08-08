@@ -1,7 +1,10 @@
+import React, { Suspense } from 'react';
 import Reset from "./Reset"
 
 export default function Page() {
     return (
-        <Reset />
+        <Suspense fallback={<div>Loading...</div>}>
+            <Reset />
+        </Suspense>
     )
 }
