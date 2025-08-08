@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, signInWithPopup, sendEmailVerification } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
 import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, googleProvider } from "@/lib/firebase";
 import Logo from "@/app/components/ui/Logo";
@@ -59,6 +59,39 @@ export default function Signin() {
   const hasPlan = (plan: unknown): boolean => {
     return plan !== null && plan !== undefined;
   };
+
+  const handleForgotPassword = async () => {
+    setError(null);
+
+    if (!email) {
+      setError("Please enter your email address to reset your password.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await sendPasswordResetEmail(auth, email, {
+        url: 'https://tailoresume.com/reset-password'
+      });
+      setError("Password reset email sent! Check your inbox.");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        if (error.message.includes("user-not-found")) {
+          setError("No account found with this email address.");
+        } else if (error.message.includes("invalid-email")) {
+          setError("Please enter a valid email address.");
+        } else {
+          setError(error.message);
+        }
+      } else {
+        setError("Failed to send password reset email.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -250,6 +283,14 @@ export default function Signin() {
               )}
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            className="text-sm text-indigo-600 hover:text-indigo-500 font-medium mt-2"
+          >
+            Forgot Password?
+          </button>
 
           <div>
             <button
