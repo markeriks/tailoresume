@@ -11,7 +11,7 @@ export const metadata = {
     siteName: 'TailoResume',
     images: [
       {
-        url: 'https://yourdomain.com/og-image.png', // Optional: Replace with your OG image
+        url: 'https://yourdomain.com/og-image.png',
         width: 1200,
         height: 630,
         alt: 'TailoResume Pricing Plans',

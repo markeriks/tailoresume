@@ -56,6 +56,10 @@ export default function Signin() {
     );
   };
 
+  const hasPlan = (plan: unknown): boolean => {
+    return plan !== null && plan !== undefined;
+  };
+
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -91,8 +95,8 @@ export default function Signin() {
           return;
         }
 
-        // Check if account was created today
-        if (isAccountCreatedToday(userData.createdAt)) {
+        // Check if account was created today AND user doesn't have a plan
+        if (isAccountCreatedToday(userData.createdAt) && !hasPlan(userData.plan)) {
           router.push("/plans");
         } else {
           router.push("/dashboard");
@@ -143,7 +147,8 @@ export default function Signin() {
       if (userDoc.exists()) {
         const userData = userDoc.data();
 
-        if (isAccountCreatedToday(userData.createdAt)) {
+        // Check if account was created today AND user doesn't have a plan
+        if (isAccountCreatedToday(userData.createdAt) && !hasPlan(userData.plan)) {
           router.push("/plans");
         } else {
           router.push("/dashboard");

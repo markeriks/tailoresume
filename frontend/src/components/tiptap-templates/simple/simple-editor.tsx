@@ -133,11 +133,11 @@ const ParagraphWithClass = Paragraph.extend({
 });
 
 // Changes Popup Component
-const ChangesPopup = ({ 
-  onApplyChanges, 
-  onRollback, 
-  show 
-}: { 
+const ChangesPopup = ({
+  onApplyChanges,
+  onRollback,
+  show
+}: {
   onApplyChanges: () => void;
   onRollback: () => void;
   show: boolean;
@@ -226,7 +226,7 @@ const SetupContainer = ({
             <p className="text-gray-600 mb-8">
               Paste the URL of the job you're applying for to get started
             </p>
-            
+
             <div className="space-y-4 mb-8">
               <div className="flex items-center space-x-2 mb-3 justify-center">
                 <Link className="w-5 h-5 text-blue-600" />
@@ -400,14 +400,14 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
   const handleContinueToEditor = async () => {
     setSetupMode(false);
     setEditorDisabled(false);
-    
+
     if (uploadedFile) {
       // If file is uploaded, convert it to HTML and load in editor
       try {
         const arrayBuffer = await uploadedFile.arrayBuffer();
         const { value: originalHtml } = await mammoth.convertToHtml({ arrayBuffer });
         setOriginalResume(originalHtml);
-        
+
         if (editor) {
           editor.commands.setContent(originalHtml, {
             parseOptions: { preserveWhitespace: false },
@@ -439,7 +439,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     // Get current HTML content from editor
     const currentHTML = editor.getHTML();
     console.log(currentHTML)
-    
+
     if (!currentHTML || currentHTML === '<p></p>' || currentHTML.trim() === '<p>Start typing your resume content here...</p>') {
       alert('Please add some content to your resume first');
       return;
@@ -470,7 +470,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
       const userData = userSnap.data();
       const userCredits = userData?.credits ?? 0;
 
-      if (userCredits <= 0) {
+      if (userCredits < 5) {
         setShowNoCreditsModal(true);
         setIsProcessing(false);
         return;
@@ -504,7 +504,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
       const idToken = await user.getIdToken();
 
       await updateDoc(userRef, {
-        credits: increment(-1),
+        credits: increment(-5),
         tailorCalls: increment(1)
       });
       setCredits((prevCredits: number) => prevCredits - 1);
@@ -517,7 +517,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
         },
         body: JSON.stringify({
           jobContent: combinedJobContent,
-          resumeContent: currentHTML, // Use current HTML from editor
+          resumeContent: currentHTML,
         }),
       })
         .then(res => {
@@ -589,29 +589,36 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
   }, [isMobile, mobileView])
 
   React.useEffect(() => {
-    if (!editor) return
+    if (!editor) return;
 
     const handleSelectionChange = () => {
-      const selection = window.getSelection()
-
-      if (!selection || selection.isCollapsed) {
-        setSelectionRect(null)
-        setSelectedText('')
-        return
+      // Prevent clearing the toolbar if we're clicking/typing inside it
+      const activeEl = document.activeElement;
+      if (activeEl && activeEl.closest(".selection-toolbar")) {
+        return;
       }
 
-      const range = selection.getRangeAt(0)
-      const rect = range.getBoundingClientRect()
-      setSelectionRect(rect)
-      setSelectedText(selection.toString())
-    }
+      const selection = window.getSelection();
 
-    document.addEventListener('selectionchange', handleSelectionChange)
+      if (!selection || selection.isCollapsed) {
+        setSelectionRect(null);
+        setSelectedText("");
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      setSelectionRect(rect);
+      setSelectedText(selection.toString());
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
 
     return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange)
-    }
-  }, [editor])
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, [editor]);
+
 
   const onSelectionAction = async (action: string) => {
     if (!editor) return;
@@ -621,8 +628,6 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
       console.warn("No text selected");
       return;
     }
-
-    console.log("Sending to API:", { action, text: trimmedText });
 
     try {
       const auth = getAuth();
@@ -635,10 +640,27 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
 
       const db = getFirestore();
       const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
 
+      if (!userSnap.exists()) {
+        console.error("User document does not exist");
+        return;
+      }
+
+      const userData = userSnap.data();
+      const userCredits = userData?.credits ?? 0;
+
+      if (userCredits < 1) {
+        setShowNoCreditsModal(true);
+        return;
+      }
+
+      // Deduct 1 credit before making the API call
       await updateDoc(userRef, {
+        credits: increment(-1),
         selectCalls: increment(1),
       });
+      setCredits((prevCredits: number) => prevCredits - 1);
 
       const idToken = await user.getIdToken();
 
@@ -661,7 +683,6 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
 
       const data = await response.json();
       const newText = data.result.replace(/^"+|"+$/g, "");
-      console.log("Received from API:", newText);
 
       editor.chain().focus().deleteSelection().run();
 
@@ -832,8 +853,8 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
       {showNoCreditsModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl max-w-sm text-center">
-            <h2 className="text-xl font-semibold mb-2">No Credits Left</h2>
-            <p className="mb-4">You've run out of resume tailoring credits.</p>
+            <h2 className="text-xl font-semibold mb-2">Not Enough Credits</h2>
+            <p className="mb-4">You don't have enough credits.</p>
             <button
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
               onClick={() => setShowNoCreditsModal(false)}

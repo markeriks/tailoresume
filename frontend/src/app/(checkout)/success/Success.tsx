@@ -37,9 +37,9 @@ export default function SuccessPage() {
 
                 let creditsToAdd = 0;
                 if (/standard/i.test(productName)) {
-                    creditsToAdd = 20;
+                    creditsToAdd = 100;
                 } else if (/pro/i.test(productName)) {
-                    creditsToAdd = 300;
+                    creditsToAdd = 500;
                 }
 
                 if (creditsToAdd > 0) {
@@ -82,7 +82,7 @@ export default function SuccessPage() {
                         You’re now subscribed{planName ? ` to the ${planName}` : ''}.
                     </p>
                     <p className="text-gray-500 mb-10">
-                        {planName?.toLowerCase().includes('pro') ? '300' : '20'} credits have been added to your
+                        {planName?.toLowerCase().includes('pro') ? '500' : '100'} credits have been added to your
                         account.
                     </p>
                     <Link href="/dashboard">

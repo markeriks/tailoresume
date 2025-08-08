@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: email, // ✅ lock email – can't be changed by the user
+      customer_email: email,
       success_url: `http://tailoresume.com/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `http://tailoresume.com/cancel`,
     });

@@ -42,11 +42,11 @@ export default function DashboardWrapper() {
               const plan = data.plan;
 
               if (!plan) {
-                creditsToAdd = 2;
-              } else if (plan === "Standard Plan") {
                 creditsToAdd = 20;
+              } else if (plan === "Standard Plan") {
+                creditsToAdd = 100;
               } else if (plan === "Pro Plan") {
-                creditsToAdd = 300;
+                creditsToAdd = 500;
               }
 
               await updateDoc(userRef, {

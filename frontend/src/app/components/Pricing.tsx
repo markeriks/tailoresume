@@ -35,27 +35,27 @@ export default function PricingComponent() {
     },
     quarterly: {
       free: { price: 0, period: 'per quarter' },
-      standard: { price: 24, period: 'per quarter' }, // 20% off = $8/month
-      pro: { price: 48, period: 'per quarter' } // 20% off = $16/month
+      standard: { price: 24, period: 'per quarter' },
+      pro: { price: 48, period: 'per quarter' }
     }
   };
 
   const features = {
     free: [
-      '2 tailored resumes per month',
+      '20 credits per month',
       'Basic ATS keyword optimization',
       'Upload and edit your resume'
     ],
     standard: [
       'Everything in Free +',
-      'Up to 20 tailored resumes per month',
+      'Up to 100 credits per month',
       'Full ATS optimization and keyword matching',
       'Export in PDF format',
       'Dedicated email support'
     ],
     pro: [
       'Everything in Standard +',
-      '300 tailored resumes per month',
+      '500 credits per month',
       'Enhanced resume personalization',
       'Export in PDF format',
       'Priority email support',
