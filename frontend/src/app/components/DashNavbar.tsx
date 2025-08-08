@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronDown, Zap, Menu, Sparkles, MessageSquare, CreditCard } from 'lucide-react';
+import { ChevronDown, Zap, Menu, Sparkles, MessageSquare, CreditCard, Package } from 'lucide-react';
 import { signOut, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { doc, getDoc, getFirestore } from 'firebase/firestore';
@@ -148,6 +148,12 @@ export default function DashboardNavbar({ credits, showSidebar, onNewResume, onS
           <Sparkles className="w-4 h-4 text-yellow-500" />
           Tailor new resume
         </button>
+        <Link href="/plans">
+          <button className="w-full flex items-center gap-2 text-left text-gray-500 font-semibold px-2 py-3 hover:bg-gray-100 hover:rounded-lg cursor-pointer">
+            <Package className="w-4 h-4 text-gray-500" />
+            Upgrade your Plan
+          </button>
+        </Link>
         <button onClick={onSendFeedback} className="w-full flex items-center gap-2 text-left text-gray-500 font-semibold px-2 py-3 hover:bg-gray-100 hover:rounded-lg hover:text-gray-800">
           <MessageSquare className="w-4 h-4 text-gray-500 group-hover:text-gray-800" />
           Send feedback
