@@ -1,9 +1,9 @@
 module.exports = {
   siteUrl: 'https://tailoresume.com',
   generateRobotsTxt: true,
-  extraPaths: async (config) => [
-    '/about',
-    '/pricing',
-    
+  additionalPaths: async (config) => [
+    { loc: '/' },
+    { loc: '/about' },
+    { loc: '/pricing' },
   ],
 }
