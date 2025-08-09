@@ -13,11 +13,11 @@ export const metadata = {
   openGraph: {
     title: 'TailoResume',
     description: 'AI-powered resume tailoring for job seekers',
-    url: 'https://yourdomain.com',
+    url: 'https://tailoresume.com',
     siteName: 'TailoResume',
     images: [
       {
-        url: '/og-image.png',
+        url: 'https://tailoresume.com/og-image.png',
         width: 1200,
         height: 630,
         alt: 'TailoResume Open Graph Image',
@@ -30,8 +30,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'TailoResume',
     description: 'AI-powered resume tailoring for job seekers',
-    creator: '@yourtwitterhandle',
-    images: ['/og-image.png'], // optional
+    images: ['https://tailoresume.com/og-image.png'],
   },
 };
 

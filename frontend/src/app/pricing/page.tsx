@@ -7,11 +7,11 @@ export const metadata = {
   openGraph: {
     title: 'TailoResume Pricing – Choose Your Plan',
     description: 'Explore Free, Standard, and Pro plans designed to help you craft the perfect resume with AI-powered tools.',
-    url: 'https://yourdomain.com/pricing',
+    url: 'https://tailoresume.com/pricing',
     siteName: 'TailoResume',
     images: [
       {
-        url: 'https://yourdomain.com/og-image.png',
+        url: 'https://tailoresume.com/og-pricing.png',
         width: 1200,
         height: 630,
         alt: 'TailoResume Pricing Plans',
@@ -23,7 +23,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'TailoResume Pricing – Choose Your Plan',
     description: 'AI-enhanced resume plans to help you land your dream job. Compare features and choose what fits best.',
-    images: ['https://yourdomain.com/og-image.png'],
+    images: ['https://tailoresume.com/og-pricing.png'],
   },
 };
 
