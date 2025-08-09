@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
 
@@ -38,6 +38,7 @@ type FAQ = {
 export default function PricingComponent({ title }: PricingComponentProps) {
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('quarterly');
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>('credits');
+  const [loadingPlan, setLoadingPlan] = useState<'standard' | 'pro' | null>(null);
 
   const priceIdMap = {
     standard: {
@@ -156,11 +157,14 @@ export default function PricingComponent({ title }: PricingComponentProps) {
       return;
     }
 
+    setLoadingPlan(plan);
+
     try {
       const email = user.email;
 
       if (!email) {
         alert("Unable to retrieve user email.");
+        setLoadingPlan(null);
         return;
       }
 
@@ -181,10 +185,12 @@ export default function PricingComponent({ title }: PricingComponentProps) {
         window.location.href = data.url;
       } else {
         alert('Error starting checkout');
+        setLoadingPlan(null);
       }
     } catch (err) {
       console.error("Subscription error:", err);
       alert("Something went wrong. Please try again.");
+      setLoadingPlan(null);
     }
   };
 
@@ -251,6 +257,7 @@ export default function PricingComponent({ title }: PricingComponentProps) {
             badge="Popular"
             discount={billingPeriod === 'quarterly'}
             onSubscribe={() => handleSubscribe('standard')}
+            isLoading={loadingPlan === 'standard'}
           />
           <PricingCard
             label="Pro"
@@ -262,6 +269,7 @@ export default function PricingComponent({ title }: PricingComponentProps) {
             buttonLabel="Subscribe"
             discount={billingPeriod === 'quarterly'}
             onSubscribe={() => handleSubscribe('pro')}
+            isLoading={loadingPlan === 'pro'}
           />
         </div>
 
@@ -314,6 +322,7 @@ type CardProps = {
   discount?: boolean;
   onSubscribe?: () => void;
   isFree?: boolean;
+  isLoading?: boolean;
 };
 
 function PricingCard({
@@ -328,6 +337,7 @@ function PricingCard({
   discount,
   onSubscribe,
   isFree,
+  isLoading,
 }: CardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-8 relative">
@@ -371,9 +381,17 @@ function PricingCard({
       ) : (
         <button
           onClick={onSubscribe}
-          className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors mb-8"
+          disabled={isLoading}
+          className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors mb-8 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {buttonLabel}
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              Loading...
+            </>
+          ) : (
+            buttonLabel
+          )}
         </button>
       )}
 
