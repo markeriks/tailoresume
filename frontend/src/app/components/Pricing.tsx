@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 
 type BillingPeriod = 'monthly' | 'quarterly';
@@ -24,8 +24,15 @@ type PlansData = {
   };
 };
 
+type FAQ = {
+  id: string;
+  question: string;
+  answer: string;
+};
+
 export default function PricingComponent() {
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('quarterly');
+  const [expandedFAQ, setExpandedFAQ] = useState<string | null>('credits');
 
   const plans: PlansData = {
     monthly: {
@@ -42,20 +49,51 @@ export default function PricingComponent() {
 
   const features = {
     free: [
-      '20 credits per month',
+      <span key="credits-free">
+        <button 
+          onClick={() => {
+            setExpandedFAQ('credits');
+            document.getElementById('faq-section')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="text-orange-600 hover:text-orange-700 underline underline-offset-2 decoration-dotted"
+        >
+          20 credits
+        </button> per month
+      </span>,
       'Basic ATS keyword optimization',
       'Upload and edit your resume'
     ],
     standard: [
       'Everything in Free +',
-      'Up to 100 credits per month',
+      <span key="credits-standard">
+        Up to{' '}
+        <button 
+          onClick={() => {
+            setExpandedFAQ('credits');
+            document.getElementById('faq-section')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="text-orange-600 hover:text-orange-700 underline underline-offset-2 decoration-dotted"
+        >
+          100 credits
+        </button> per month
+      </span>,
       'Full ATS optimization and keyword matching',
       'Export in PDF format',
       'Dedicated email support'
     ],
     pro: [
       'Everything in Standard +',
-      '500 credits per month',
+      <span key="credits-pro">
+        <button 
+          onClick={() => {
+            setExpandedFAQ('credits');
+            document.getElementById('faq-section')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="text-orange-600 hover:text-orange-700 underline underline-offset-2 decoration-dotted"
+        >
+          500 credits
+        </button> per month
+      </span>,
       'Enhanced resume personalization',
       'Export in PDF format',
       'Priority email support',
@@ -63,8 +101,39 @@ export default function PricingComponent() {
     ]
   };
 
+  const faqs: FAQ[] = [
+    {
+      id: 'credits',
+      question: 'What are credits and how many do I need?',
+      answer: 'Credits are what power TailoResume\'s AI features. Tailoring a full resume costs 5 credits. Quick tweaks or asking questions through the AI toolbar cost 1 credit each, making it easy to adjust your resume or get instant help whenever you need.'
+    },
+    {
+      id: 'ats',
+      question: 'How does ATS optimization work?',
+      answer: 'Our AI scans job postings to find the most important skills, keywords, and requirements that Applicant Tracking Systems (ATS) are looking for. Then, it weaves those elements into your resume in a natural way—so it\'s both ATS-friendly and easy for real people to read. This boosts your chances of getting past the filters and in front of recruiters.'
+    },
+    {
+      id: 'formats',
+      question: 'What file formats do you support?',
+      answer: 'You can upload resumes in DOCX format or paste your resume text directly into our platform. All optimized resumes can be exported as professional PDF files, which is the preferred format for most job applications and ATS systems.'
+    },
+    {
+      id: 'quality',
+      question: 'Will my resume still sound authentic after AI optimization?',
+      answer: 'Absolutely! TailoResume doesn\'t replace your content - it strategically highlights your existing skills and experiences that match the job requirements. The AI maintains your authentic voice while ensuring the most relevant qualifications are prominently featured and properly formatted for maximum impact.'
+    },
+    {
+      id: 'speed',
+      question: 'How quickly can I get my tailored resume?',
+      answer: 'Our AI processes and optimizes resumes in under 1 minute. Simply paste the job posting link, upload your resume, and you\'ll have a perfectly tailored version ready to download and submit almost instantly.'
+    }
+  ];
 
   const currentPricing = plans[billingPeriod];
+
+  const toggleFAQ = (faqId: string) => {
+    setExpandedFAQ(expandedFAQ === faqId ? null : faqId);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-20 px-4">
@@ -108,7 +177,7 @@ export default function PricingComponent() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto mb-20">
           {/* Free Plan */}
           <PricingCard
             label="Free"
@@ -145,6 +214,39 @@ export default function PricingComponent() {
             discount={billingPeriod === 'quarterly'}
           />
         </div>
+
+        {/* FAQ Section */}
+        <div id="faq-section" className="max-w-4xl mx-auto">
+          <h3 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+            Frequently Asked Questions
+          </h3>
+          <div className="space-y-4">
+            {faqs.map((faq) => (
+              <div key={faq.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <button
+                  onClick={() => toggleFAQ(faq.id)}
+                  className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
+                >
+                  <h4 className="text-lg font-semibold text-gray-900 pr-4">
+                    {faq.question}
+                  </h4>
+                  {expandedFAQ === faq.id ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                  )}
+                </button>
+                {expandedFAQ === faq.id && (
+                  <div className="px-6 pb-4">
+                    <p className="text-gray-700 leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -156,7 +258,7 @@ type CardProps = {
   price: number | string;
   billingPeriod: BillingPeriod;
   period: string;
-  features: string[];
+  features: (string | React.ReactNode)[];
   buttonLabel: string;
   badge?: string;
   discount?: boolean;
@@ -216,7 +318,9 @@ function PricingCard({
         {features.map((feature, index) => (
           <li key={index} className="flex items-start">
             <Check className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-            <span className="text-gray-700 text-sm">{feature}</span>
+            <span className="text-gray-700 text-sm">
+              {typeof feature === 'string' ? feature : feature}
+            </span>
           </li>
         ))}
       </ul>
