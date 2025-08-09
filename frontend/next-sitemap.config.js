@@ -3,7 +3,6 @@ module.exports = {
   generateRobotsTxt: true,
   additionalPaths: async (config) => [
     { loc: '/' },
-    { loc: '/about' },
     { loc: '/pricing' },
   ],
 }
