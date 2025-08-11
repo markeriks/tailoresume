@@ -35,6 +35,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "url": "https://tailoresume.com",
+              "logo": "https://tailoresume.com/logo.png"
+            }),
+          }}
+        />
+        <meta property="og:image" content="https://tailoresume.com/logo.png" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${sourceSans.variable} antialiased`}
       >
