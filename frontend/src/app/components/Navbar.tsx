@@ -40,6 +40,9 @@ const Navbar = () => {
                 Home
               </Link>
             )}
+            <Link href="/blog" className="text-gray-500 hover:text-gray-900 transition-colors">
+              Blog
+            </Link>
             <Link href="/pricing" className="text-gray-500 hover:text-gray-900 transition-colors">
               Pricing
             </Link>
@@ -96,6 +99,9 @@ const Navbar = () => {
                   Home
                 </Link>
               )}
+              <Link href="/blog" className="text-gray-500 hover:text-gray-900 transition-colors">
+                Blog
+              </Link>
               <Link href="/pricing" className="text-gray-500 hover:text-gray-900 transition-colors">
                 Pricing
               </Link>
