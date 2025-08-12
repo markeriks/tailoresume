@@ -14,9 +14,6 @@ const Hero = () => {
   const [shouldAutoplay, setShouldAutoplay] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  // Replace this with your actual Mux playback ID
-  const MUX_PLAYBACK_ID = "Ze9oTouw02RS2tTJKQHd4nPnRLpFKq9Kb58tfuu6jG3o";
-
   useEffect(() => {
     // Mark as client-side rendered
     setIsClient(true);
