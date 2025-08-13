@@ -24,7 +24,10 @@ export const metadata: Metadata = {
   title: "TailoResume - Tailor Your Resume Instantly",
   description: "Tailor your resume to any job posting in minutes with AI-powered optimization.",
   icons: {
-    icon: "/icon.ico",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/logo.png", type: "image/png" },
+    ],
   },
 };
 
@@ -36,6 +39,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
