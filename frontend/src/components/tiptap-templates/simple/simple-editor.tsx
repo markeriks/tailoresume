@@ -1,3 +1,11 @@
+/**
+ * SIMPLE EDITOR COMPONENT
+ * 
+ * This is the main resume editor component that provides a rich text editing experience
+ * with AI-powered resume tailoring capabilities. It integrates with TipTap editor,
+ * Firebase authentication, and external APIs for job posting analysis and resume optimization.
+ */
+
 'use client'
 
 import * as React from 'react'
@@ -72,8 +80,21 @@ interface SimpleEditorProps {
   setCredits: React.Dispatch<React.SetStateAction<number>>;
 }
 
+/**
+ * TEXT DIFF HIGHLIGHTING UTILITY
+ * 
+ * This function compares two HTML strings (original and modified resume content)
+ * and highlights the differences by adding CSS classes to changed elements.
+ * 
+ * Process:
+ * 1. Parses both HTML strings into DOM documents
+ * 2. Recursively compares text nodes between original and modified content
+ * 3. Adds 'highlight' class to elements that have changed
+ * 4. Preserves the structure while marking differences for visual feedback
+ * 
+ * Used to show users exactly what changes were made during AI resume tailoring.
+ */
 function highlightTextDiff(original: string, modified: string): string {
-  // 1. Create DOM parsers for both
   console.log("started Highlight function");
   const parser = new DOMParser();
   const origDoc = parser.parseFromString(`<div>${original}</div>`, 'text/html');
@@ -85,13 +106,11 @@ function highlightTextDiff(original: string, modified: string): string {
     return modified;
   }
 
-  // 2. Recursive function to diff text nodes
   function diffNodes(origNode: ChildNode, modNode: ChildNode) {
     if (origNode.nodeType === Node.TEXT_NODE && modNode.nodeType === Node.TEXT_NODE) {
       const origText = origNode.textContent || '';
       const modText = modNode.textContent || '';
 
-      // Simple diff — highlight all text differences by wrapping changed parts
       if (origText !== modText) {
         const parent = modNode.parentElement;
         if (parent) {
@@ -100,7 +119,6 @@ function highlightTextDiff(original: string, modified: string): string {
         }
       }
     } else if (origNode.childNodes.length === modNode.childNodes.length) {
-      // If both have same number of children, recurse
       console.log("Starting recursion");
       for (let i = 0; i < origNode.childNodes.length; i++) {
         diffNodes(origNode.childNodes[i], modNode.childNodes[i]);
@@ -112,10 +130,16 @@ function highlightTextDiff(original: string, modified: string): string {
 
   diffNodes(origRoot!, modRoot!);
 
-  // 3. Return modified innerHTML without the wrapper <div>
   return (modDoc.body.firstChild as Element)?.innerHTML || '';
 }
 
+/**
+ * CUSTOM PARAGRAPH EXTENSION
+ * 
+ * Extends the default TipTap Paragraph extension to support custom CSS classes.
+ * This allows paragraphs to have additional styling attributes that can be used
+ * for highlighting changes or applying custom formatting.
+ */
 const ParagraphWithClass = Paragraph.extend({
   addAttributes() {
     return {
@@ -132,7 +156,12 @@ const ParagraphWithClass = Paragraph.extend({
   },
 });
 
-// Changes Popup Component
+/**
+ * CHANGES POPUP COMPONENT
+ * 
+ * A modal popup that appears when the AI has finished tailoring the resume.
+ * Allows users to either apply the suggested changes or rollback to the original content.
+ */
 const ChangesPopup = ({
   onApplyChanges,
   onRollback,
@@ -176,7 +205,16 @@ const ChangesPopup = ({
   );
 };
 
-// Setup Container Component
+/**
+ * SETUP CONTAINER COMPONENT
+ * 
+ * A multi-step modal overlay that guides users through the initial setup process
+ * before they can start editing their resume. Handles job URL input and optional file upload.
+ * 
+ * Two-step process:
+ * Step 1: User enters job posting URL for AI tailoring
+ * Step 2: User optionally uploads existing resume (.docx file)
+ */
 const SetupContainer = ({
   currentStep,
   jobUrl,
@@ -311,19 +349,28 @@ const SetupContainer = ({
   );
 };
 
+/**
+ * MAIN SIMPLE EDITOR COMPONENT
+ * 
+ * The primary resume editor component that orchestrates all functionality.
+ * Manages state, handles user interactions, and coordinates between different
+ * UI components and external services.
+ */
 export function SimpleEditor({ setCredits }: SimpleEditorProps) {
+  // Mobile detection and view state management
   const isMobile = useIsMobile()
   const [mobileView, setMobileView] = React.useState<'main' | 'highlighter' | 'link'>('main')
   const toolbarRef = React.useRef<HTMLDivElement>(null)
   const [copied, setCopied] = React.useState(false);
 
+  // Text selection and highlighting state
   const [selectionRect, setSelectionRect] = React.useState<DOMRect | null>(null)
   const [selectedText, setSelectedText] = React.useState('')
   const [contentLoaded, setContentLoaded] = React.useState(false);
   const [showChangesPopup, setShowChangesPopup] = React.useState(false);
   const [editorDisabled, setEditorDisabled] = React.useState(true);
 
-  // Setup flow state
+  // Setup flow and file upload state
   const [setupMode, setSetupMode] = React.useState(true);
   const [currentStep, setCurrentStep] = React.useState<1 | 2>(1);
   const [jobUrl, setJobUrl] = React.useState<string>("");
@@ -366,8 +413,14 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     autofocus: false,
     parseOptions: { preserveWhitespace: false },
 
+    /**
+     * EDITOR INITIALIZATION CALLBACK
+     * 
+     * Handles the initial content loading when the editor is created.
+     * If we have both original and modified resume content, it highlights
+     * the differences and shows the changes popup for user review.
+     */
     onCreate({ editor }) {
-      // Editor starts empty in setup mode
       if (!setupMode && originalResume && modifiedResume) {
         const highlightedContent = highlightTextDiff(originalResume, modifiedResume);
         editor.commands.setContent(highlightedContent, {
@@ -382,6 +435,13 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     immediatelyRender: false,
   })
 
+  /**
+   * CONTENT LOADING EFFECT
+   * 
+   * Handles loading modified resume content with highlighting when the editor
+   * is ready and we have both original and modified content. Uses a small delay
+   * to ensure smooth transitions and proper rendering.
+   */
   React.useEffect(() => {
     if (!editor || !modifiedResume || contentLoaded || setupMode) return;
 
@@ -394,6 +454,12 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     }, 400);
   }, [editor, modifiedResume, originalResume, contentLoaded, setupMode]);
 
+  /**
+   * FILE UPLOAD HANDLER
+   * 
+   * Handles the upload of .docx resume files during the setup process.
+   * Validates file type and stores the file for later processing.
+   */
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
     if (file && file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
@@ -403,12 +469,18 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     }
   };
 
+  /**
+   * CONTINUE TO EDITOR HANDLER
+   * 
+   * Transitions from setup mode to editor mode. If a file was uploaded,
+   * it converts the .docx file to HTML using the mammoth library and loads
+   * it into the editor. Otherwise, it just enables the editor for manual input.
+   */
   const handleContinueToEditor = async () => {
     setSetupMode(false);
     setEditorDisabled(false);
 
     if (uploadedFile) {
-      // If file is uploaded, convert it to HTML and load in editor
       try {
         const arrayBuffer = await uploadedFile.arrayBuffer();
         const { value: originalHtml } = await mammoth.convertToHtml({ arrayBuffer });
@@ -428,7 +500,6 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
         }
       }
     } else {
-      // No file uploaded, start with empty editor
       if (editor) {
         editor.setEditable(true);
         editor.commands.focus();
@@ -436,13 +507,27 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     }
   };
 
+  /**
+   * AI RESUME TAILORING HANDLER
+   * 
+   * The main function that orchestrates the AI-powered resume tailoring process.
+   * This is the core feature that analyzes job postings and optimizes resume content.
+   * 
+   * Process:
+   * 1. Validates job URL and resume content
+   * 2. Checks user authentication and credit balance
+   * 3. Fetches job posting data from Diffbot API
+   * 4. Deducts credits and calls backend AI service
+   * 5. Processes the tailored resume and shows changes
+   * 
+   * Credit Cost: 5 credits per tailoring operation
+   */
   const handleTailorResume = async () => {
     if (!jobUrl || !editor) {
       alert('Please provide job URL');
       return;
     }
 
-    // Get current HTML content from editor
     const currentHTML = editor.getHTML();
     console.log(currentHTML)
 
@@ -482,7 +567,6 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
         return;
       }
 
-      // 1. Extract job title & text using Diffbot
       const token = process.env.NEXT_PUBLIC_DIFFBOT_TOKEN!;
       const diffbotUrl = `https://api.diffbot.com/v3/job?token=${token}&url=${encodeURIComponent(jobUrl)}`;
 
@@ -498,15 +582,12 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
       const text = jobObj?.text || '';
       const combinedJobContent = `${title}\n\n${text}`;
 
-      // Set job title and original resume from current editor content
       setJobTitle(title);
       setOriginalResume(currentHTML);
 
-      // Disable editor during processing
       editor.setEditable(false);
       setEditorDisabled(true);
 
-      // 3. Send current resume content + job data to backend for tailoring
       const idToken = await user.getIdToken();
 
       await updateDoc(userRef, {
@@ -551,7 +632,13 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     }
   };
 
-  // Function to apply changes by removing 'highlight' class from all nodes
+  /**
+   * APPLY CHANGES HANDLER
+   * 
+   * Removes the highlight classes from all elements and accepts the AI-generated changes.
+   * This makes the changes permanent and re-enables editing. The highlight classes
+   * are used to show what was changed during the AI tailoring process.
+   */
   const applyChanges = React.useCallback(() => {
     if (!editor) return;
 
@@ -575,7 +662,12 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     editor.setEditable(true);
   }, [editor]);
 
-  // Function to rollback to original resume
+  /**
+   * ROLLBACK CHANGES HANDLER
+   * 
+   * Reverts the editor content back to the original resume before AI tailoring.
+   * This discards all AI-generated changes and restores the user's original content.
+   */
   const rollbackChanges = React.useCallback(() => {
     if (!editor) return;
 
@@ -594,11 +686,17 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     }
   }, [isMobile, mobileView])
 
+  /**
+   * TEXT SELECTION TRACKING EFFECT
+   * 
+   * Monitors text selection in the editor and provides data for the selection toolbar.
+   * Tracks the bounding rectangle and selected text to position and populate the
+   * floating selection toolbar that appears when text is selected.
+   */
   React.useEffect(() => {
     if (!editor) return;
 
     const handleSelectionChange = () => {
-      // Prevent clearing the toolbar if we're clicking/typing inside it
       const activeEl = document.activeElement;
       if (activeEl && activeEl.closest(".selection-toolbar")) {
         return;
@@ -626,6 +724,21 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
   }, [editor]);
 
 
+  /**
+   * SELECTION ACTION HANDLER
+   * 
+   * Handles AI-powered text transformation when users select text and choose an action
+   * from the selection toolbar (e.g., improve, expand, summarize, etc.).
+   * 
+   * Process:
+   * 1. Validates selected text and user authentication
+   * 2. Checks credit balance (costs 1 credit per transformation)
+   * 3. Calls backend AI service with the selected text and action
+   * 4. Replaces selected text with AI-generated content
+   * 5. Provides typewriter effect for smooth text replacement
+   * 
+   * Credit Cost: 1 credit per text transformation
+   */
   const onSelectionAction = async (action: string) => {
     if (!editor) return;
 
@@ -661,7 +774,6 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
         return;
       }
 
-      // Deduct 1 credit before making the API call
       await updateDoc(userRef, {
         credits: increment(-1),
         selectCalls: increment(1),
@@ -736,6 +848,19 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     </>
   )
 
+  /**
+   * MAIN TOOLBAR CONTENT COMPONENT
+   * 
+   * Renders the primary toolbar with all editing controls including:
+   * - Undo/Redo functionality
+   * - Text formatting (bold, italic, underline, etc.)
+   * - Heading and list controls
+   * - Text alignment options
+   * - Highlighting and color tools
+   * - Copy and PDF export functionality
+   * 
+   * Adapts layout for mobile vs desktop with different button arrangements.
+   */
   const MainToolbarContent = ({
     onHighlighterClick,
     isMobile,
@@ -784,6 +909,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
       </ToolbarGroup>
       <ToolbarSeparator />
       <ToolbarGroup>
+        {/* Copy Resume Button - Copies HTML content to clipboard */}
         <Button
           onClick={async () => {
             if (!editor) return;
@@ -815,6 +941,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
           )}
         </Button>
 
+        {/* Download Resume Button - Exports content as PDF */}
         <Button onClick={() => {
           const element = document.querySelector('.simple-editor-content');
           if (!element) return;
@@ -840,9 +967,21 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
     </>
   )
 
+  /**
+   * MAIN RENDER FUNCTION
+   * 
+   * Renders the complete editor interface including:
+   * - Setup modal for initial configuration
+   * - Credit management modals
+   * - Changes popup for AI modifications
+   * - Loading indicators and progress bars
+   * - Tailor resume button
+   * - Main editor with toolbar and content area
+   * - Selection toolbar for text transformations
+   */
   return (
     <div className="simple-editor-wrapper mt-25 md:mt-25">
-      {/* Setup Container Overlay */}
+      {/* Setup Container Overlay - Initial job URL and file upload */}
       {setupMode && (
         <SetupContainer
           currentStep={currentStep}
@@ -855,7 +994,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
         />
       )}
 
-      {/* No Credits Modal */}
+      {/* No Credits Modal - Shows when user lacks sufficient credits */}
       {showNoCreditsModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl max-w-sm text-center">
@@ -871,7 +1010,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
         </div>
       )}
 
-      {/* Changes Popup */}
+      {/* Changes Popup - Appears after AI tailoring with apply/rollback options */}
       <AnimatePresence>
         <ChangesPopup
           show={showChangesPopup}
@@ -880,7 +1019,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
         />
       </AnimatePresence>
 
-      {/* Job Title Loading Indicator */}
+      {/* Job Title Loading Indicator - Shows progress during AI tailoring */}
       {jobTitle && !contentLoaded && !setupMode && (
         <div className="relative md:fixed md:top-30 md:right-4 mt-0 md:mt-0 mb-4 p-4 rounded-xl bg-green-50 border border-green-300 text-green-800 text-base font-medium overflow-hidden transition-all duration-500 max-w-md mx-auto md:mx-0">
           <div className="flex items-center justify-between">
@@ -898,7 +1037,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
         </div>
       )}
 
-      {/* "Tailor My Resume" Button for editor mode */}
+      {/* "Tailor My Resume" Button - Triggers AI resume optimization */}
       {!setupMode && !showChangesPopup && jobUrl && !jobTitle && !contentLoaded && (
         <div className="relative sm:fixed sm:top-30 sm:right-10 mb-4 sm:mb-0 mx-auto sm:mx-0 z-2">
           <button
@@ -921,8 +1060,10 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
         </div>
       )}
 
+      {/* Main Editor Interface - Toolbar and Content Area */}
       {editor && (
         <EditorContext.Provider value={{ editor }}>
+          {/* Fixed Toolbar - Contains all editing controls */}
           <Toolbar
             ref={toolbarRef}
             style={{
@@ -946,12 +1087,14 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
             )}
           </Toolbar>
 
-          {/* Selection Toolbar */}
+          {/* Selection Toolbar - Appears when text is selected for AI transformations */}
           {selectionRect && selectedText && !editorDisabled && !setupMode && (
             <SelectionToolbar rect={selectionRect} selectedText={selectedText} onAction={onSelectionAction} />
           )}
 
+          {/* Animated Editor Content - Smooth transitions between original and modified content */}
           <AnimatePresence mode="wait">
+            {/* Original content view - shown before AI modifications */}
             {!contentLoaded && (
               <motion.div
                 key="original"
@@ -969,6 +1112,7 @@ export function SimpleEditor({ setCredits }: SimpleEditorProps) {
               </motion.div>
             )}
 
+            {/* Modified content view - shown after AI tailoring with highlights */}
             {contentLoaded && (
               <motion.div
                 key="modified"

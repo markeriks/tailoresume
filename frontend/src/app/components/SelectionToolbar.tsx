@@ -1,13 +1,41 @@
+/**
+ * SELECTION TOOLBAR COMPONENT
+ * 
+ * A floating toolbar that appears when text is selected in the editor, providing
+ * AI-powered text transformation options. The toolbar dynamically positions itself
+ * above the selected text and offers various actions like improving writing,
+ * changing length, adjusting tone, and custom AI requests.
+ * 
+ * The component uses Framer Motion for smooth animations and includes a custom
+ * input mode for free-form AI interactions. It handles loading states and
+ * provides visual feedback during AI processing.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaMagic, FaMinus, FaPlus, FaPalette, FaRobot, FaCheck, FaTimes, FaChevronDown } from 'react-icons/fa';
 
+/**
+ * COMPONENT INTERFACES
+ * 
+ * Defines the TypeScript interface for the SelectionToolbar component props.
+ * The rect prop contains the bounding rectangle of the selected text for positioning,
+ * onAction is the callback function that handles AI transformations, and selectedText
+ * contains the actual text that was selected by the user.
+ */
 interface SelectionToolbarProps {
   rect: DOMRect | null;
   onAction: (action: string) => void;
   selectedText: string;
 }
 
+/**
+ * ACTION CONFIGURATION DATA
+ * 
+ * Defines the available AI transformation actions that appear as buttons in the toolbar.
+ * Each action has an ID for identification, a user-friendly label, and an icon.
+ * The tone action is special as it opens a dropdown with specific tone options.
+ */
 const toolbarActions = [
   { id: 'improve', label: 'Improve writing', icon: <FaMagic /> },
   { id: 'shorter', label: 'Make shorter', icon: <FaMinus /> },
@@ -15,6 +43,13 @@ const toolbarActions = [
   { id: 'tone', label: 'Change tone', icon: <FaPalette /> },
 ];
 
+/**
+ * TONE OPTIONS CONFIGURATION
+ * 
+ * Defines the specific tone variations available when the user clicks "Change tone".
+ * Each option maps to a specific AI instruction that will be sent to the backend
+ * for processing the selected text.
+ */
 const toneOptions = [
   { id: 'formal', label: 'Formal', action: 'make the tone more formal' },
   { id: 'casual', label: 'Casual', action: 'make the tone more casual' },
@@ -22,6 +57,17 @@ const toneOptions = [
   { id: 'friendly', label: 'Friendly', action: 'make the tone more friendly' },
 ];
 
+/**
+ * RAF THROTTLED RECT HOOK
+ * 
+ * A custom hook that throttles rectangle position updates using requestAnimationFrame
+ * to prevent excessive re-renders when the selection rectangle changes rapidly.
+ * This improves performance by batching position updates to the next animation frame,
+ * reducing the computational overhead of frequent toolbar repositioning.
+ * 
+ * The hook cancels any pending animation frame when a new rect is provided and
+ * cleans up on unmount to prevent memory leaks.
+ */
 function useRafThrottledRect(rect: DOMRect | null) {
   const [throttledRect, setThrottledRect] = useState(rect);
   const rafId = useRef<number | null>(null);
@@ -45,18 +91,36 @@ function useRafThrottledRect(rect: DOMRect | null) {
   return throttledRect;
 }
 
+/**
+ * MAIN SELECTION TOOLBAR COMPONENT
+ * 
+ * The primary component that renders the floating toolbar above selected text.
+ * Manages multiple UI states including custom input mode, tone dropdown visibility,
+ * and loading states for different actions. Uses throttled positioning to ensure
+ * smooth animations while maintaining performance.
+ */
 export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   rect,
   onAction,
 }) => {
+  // Throttled rectangle position for smooth animations
   const throttledRect = useRafThrottledRect(rect);
+  
+  // UI state management
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customAction, setCustomAction] = useState('');
   const [showToneDropdown, setShowToneDropdown] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Remember last rect to keep toolbar visible when interacting
+  /**
+   * RECTANGLE PERSISTENCE LOGIC
+   * 
+   * Maintains the last known rectangle position to keep the toolbar visible
+   * when the user interacts with it (e.g., clicking buttons or typing in custom input).
+   * This prevents the toolbar from disappearing during user interactions by using
+   * the throttled rect when available, falling back to the last known position.
+   */
   const lastRectRef = useRef<DOMRect | null>(null);
   useEffect(() => {
     if (rect) {
@@ -66,6 +130,13 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
 
   const visibleRect = throttledRect || lastRectRef.current;
 
+  /**
+   * KEYBOARD EVENT HANDLER
+   * 
+   * Handles keyboard input in the custom action input field.
+   * Enter key submits the custom action, Escape key cancels and closes the input.
+   * This provides keyboard accessibility for the custom AI request functionality.
+   */
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleCustomSubmit();
@@ -75,6 +146,13 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
     }
   };
 
+  /**
+   * CUSTOM INPUT FOCUS EFFECT
+   * 
+   * Automatically focuses the input field when custom input mode is activated.
+   * Uses a small delay to ensure the DOM has updated before attempting to focus,
+   * providing a smooth user experience when switching to custom input mode.
+   */
   useEffect(() => {
     if (showCustomInput && inputRef.current) {
       setTimeout(() => {
@@ -83,6 +161,13 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
     }
   }, [showCustomInput]);
 
+  /**
+   * SELECTION CLEANUP EFFECT
+   * 
+   * Resets UI state when text selection is cleared (rect becomes null).
+   * This ensures the toolbar properly cleans up loading states and closes
+   * any open dropdowns when the user deselects text or clicks elsewhere.
+   */
   useEffect(() => {
     if (!rect) {
       setLoadingAction(null);
@@ -90,6 +175,13 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
     }
   }, [rect]);
 
+  /**
+   * CUSTOM ACTION SUBMIT HANDLER
+   * 
+   * Processes the custom AI request entered by the user. Sets loading state,
+   * calls the onAction callback with the custom text, then resets the UI state.
+   * Only processes non-empty input to prevent unnecessary API calls.
+   */
   const handleCustomSubmit = async () => {
     if (customAction.trim()) {
       setLoadingAction('custom');
@@ -100,12 +192,26 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
     }
   };
 
+  /**
+   * STANDARD ACTION CLICK HANDLER
+   * 
+   * Handles clicks on predefined action buttons (improve, shorter, longer).
+   * Sets loading state for the specific action, calls the onAction callback,
+   * then clears the loading state when the AI processing is complete.
+   */
   const handleActionClick = async (action: string) => {
     setLoadingAction(action);
     await onAction(action);
     setLoadingAction(null);
   };
 
+  /**
+   * TONE SELECTION HANDLER
+   * 
+   * Handles selection of specific tone options from the dropdown menu.
+   * Closes the dropdown, sets loading state, processes the tone change,
+   * then resets the loading state. This provides a smooth UX for tone adjustments.
+   */
   const handleToneSelect = async (toneAction: string) => {
     setLoadingAction('tone');
     setShowToneDropdown(false);
@@ -113,9 +219,23 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
     setLoadingAction(null);
   };
 
-  // Only hide if there’s no rect AND not showing the custom input
+  /**
+   * VISIBILITY LOGIC
+   * 
+   * Determines when to show the toolbar. The toolbar is visible if there's a
+   * valid rectangle position OR if the custom input is currently being shown.
+   * This allows the toolbar to remain visible during user interactions.
+   */
   if (!visibleRect || (!rect && !showCustomInput)) return null;
 
+  /**
+   * MAIN TOOLBAR RENDER
+   * 
+   * Renders the floating toolbar with smooth spring animations. The toolbar
+   * positions itself above the selected text and prevents event propagation
+   * to avoid interfering with text selection. Uses Framer Motion for smooth
+   * positioning transitions.
+   */
   return (
     <motion.div
       initial={false}
@@ -142,7 +262,9 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       }}
       onClick={(e) => e.stopPropagation()}
     >
+      {/* Animated Content Switching - Toggles between action buttons and custom input */}
       <AnimatePresence mode="wait">
+        {/* Custom Input Mode - Free-form AI request interface */}
         {showCustomInput ? (
           <motion.div
             key="custom-input"
@@ -153,6 +275,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
             style={{ width: '400px' }}
             onMouseDown={(e) => e.stopPropagation()}
           >
+            {/* Custom AI Request Input Field */}
             <input
               ref={inputRef}
               type="text"
@@ -162,6 +285,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
               placeholder="Ask AI anything..."
               className="flex-1 h-8 px-2 text-xs border border-gray-300 rounded-md outline-none focus:border-blue-500"
             />
+            {/* Submit Button - Processes the custom AI request */}
             <button
               onClick={handleCustomSubmit}
               disabled={!customAction.trim() || loadingAction === 'custom'}
@@ -173,6 +297,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                 <FaCheck />
               )}
             </button>
+            {/* Cancel Button - Closes custom input mode */}
             <button
               onClick={() => {
                 setShowCustomInput(false);
@@ -184,6 +309,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
             </button>
           </motion.div>
         ) : (
+          /* Action Buttons Mode - Predefined AI transformation options */
           <motion.div
             key="action-buttons"
             initial={{ opacity: 0 }}
@@ -191,6 +317,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
             exit={{ opacity: 0 }}
             className="flex items-center gap-2 p-1 relative"
           >
+            {/* Custom AI Request Button - Switches to input mode */}
             <button
               onClick={() => setShowCustomInput(true)}
               disabled={loadingAction !== null}
@@ -200,9 +327,11 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
               Ask AI anything
             </button>
 
+            {/* Predefined Action Buttons - Renders all toolbar actions */}
             {toolbarActions.map((action) => (
               <div key={action.id} className="relative">
                 {action.id === 'tone' ? (
+                  /* Tone Change Button with Dropdown - Special handling for tone options */
                   <div className="relative">
                     <button
                       onClick={() => setShowToneDropdown(!showToneDropdown)}
@@ -218,6 +347,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                       <FaChevronDown className="ml-1" size={8} />
                     </button>
 
+                    {/* Tone Options Dropdown - Shows specific tone variations */}
                     {showToneDropdown && (
                       <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 min-w-[120px]">
                         {toneOptions.map((tone) => (
@@ -234,6 +364,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
                     )}
                   </div>
                 ) : (
+                  /* Standard Action Button - Direct action execution */
                   <button
                     onClick={() => handleActionClick(action.id)}
                     disabled={loadingAction !== null}

@@ -15,10 +15,10 @@ client = AsyncOpenAI(api_key=api_key)
 
 class TailorRequest(BaseModel):
     jobContent: str
-    resumeContent: str  # HTML format
+    resumeContent: str
 
 class TailorResponse(BaseModel):
-    tailoredResume: str  # Also HTML
+    tailoredResume: str
 
 @router.post("/tailor", response_model=TailorResponse)
 @limiter.limit("5/minute")

@@ -43,7 +43,6 @@ export default function Home() {
       <Persona />
       <HowItWorks />
       <CTA />
-      {/* Add more components as needed */}
     </>
   );
 }
